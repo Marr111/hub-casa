@@ -1,3 +1,8 @@
+//problemi - errori da risolvere
+// -pagina impostazioni --> bug della calibrazione touch --> in teoria fixato da ia controllare
+// -cambio pagina --> aggiungere ritorno alla home con la casetta (gia implementata)
+// !!!penso che la pagina impostazioni non si apra perchè ritorna direttamente al loop !!!
+
 #include "FS.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
@@ -51,6 +56,7 @@ unsigned long lastActivity = 0;       // ultimo tocco registrato
 const unsigned long timeout = 30000;  // secondi per 1000
 
 int page = 0;
+int lastPage = -1;
 
 int stato_scroll_bar = 1;
 
@@ -159,6 +165,7 @@ void setup() {
 
   connessioneWiFi();
   connessioneNTP();
+  touch_calibrate();
 
   // Imposta timezone (es. Europe/Rome). Modifica se serve.
   // Formato: "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00"
@@ -186,7 +193,6 @@ void setup() {
 void loop() {
   uint16_t x, y;
   page = 0;
-
   dataLunga = getDateLong();
   ora = getTime();
 
@@ -197,7 +203,7 @@ void loop() {
   tft.setCursor(75, 200);
   tft.println(dataLunga);
   if (tft.getTouch(&x, &y)) {
-    Serial.print("hai premuto");
+    //Serial.print("hai premuto");
     if (x > 440 && y > 280) {
       pageImpostazioni();
       Serial.print("Pagina Impostazioni");
@@ -208,6 +214,10 @@ void loop() {
   }
 }
 
+//=============================================================================
+// pagine
+//=============================================================================
+
 void page1() {
   tft.fillScreen(sfondo_page1);
   tft.setTextColor(TFT_WHITE, sfondo_page1);
@@ -215,6 +225,7 @@ void page1() {
   tft.setTextSize(4);
   tft.println("Pagina 1");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -229,6 +240,7 @@ void page2() {
   tft.setTextSize(4);
   tft.println("Pagina 2");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -243,6 +255,7 @@ void page3() {
   tft.setTextSize(4);
   tft.println("Pagina 3");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -256,10 +269,11 @@ void page4() {
   tft.setTextSize(3);
   tft.println("LAMPADINA RGB BLUETOOTH");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
-    controlloLapadina();
+    //controlloLapadina();
   }
 }
 
@@ -270,6 +284,7 @@ void page5() {
   tft.setTextSize(4);
   tft.println("Pagina 5");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -283,6 +298,7 @@ void page6() {
   tft.setTextSize(4);
   tft.println("Pagina 6");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -296,6 +312,7 @@ void page7() {
   tft.setTextSize(4);
   tft.println("Pagina 7");
   drawArrows();
+  drawHouse();
   while (1) {
     cambio_pagina();
     checkInactivity();
@@ -321,14 +338,33 @@ void pageImpostazioni() {
     else if (stato_scroll_bar == 3) stato_scroll_bar3();
     delay(100);
   }
+  loop();
   esci_dal_loop = 1;
 }
 
+//=============================================================================
+// variazione pagine
+//=============================================================================
 
 void cambio_pagina() {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     lastActivity = millis();  // aggiorna ultimo tocco
+
+    if (x < 60 && y < 60) {
+      Serial.println("Ritorno al loop");
+
+      tft.fillScreen(sfondo_page0);  //grafica pagina principale
+      tft.setTextColor(TFT_WHITE, sfondo_page0);
+      tft.setTextSize(5);
+      tft.setCursor(60, 50);
+      tft.println("Casa Casetta");
+      tft.setTextSize(2);
+      tft.setCursor(120, 300);
+      tft.println("Premi per proseguire");
+
+      loop();  // esce dalla funzione senza fare altro
+    }
 
     if (page > 1) {
       if (x > 20 && x < 60 && y > tft.height() / 2 - 30 && y < tft.height() / 2 + 30) {
@@ -348,31 +384,18 @@ void cambio_pagina() {
     } else {
       Serial.println("Pagine finite");
     }
-    switch (page) {
-      case 1:
-        page1();
-        break;
-      case 2:
-        page2();
-        break;
-      case 3:
-        page3();
-        break;
-      case 4:
-        page4();
-        break;
-      case 5:
-        page5();
-        break;
-      case 6:
-        page6();
-        break;
-      case 7:
-        page7();
-        break;
-      default:
-        page1();  // se per errore page esce dal range, torna alla pagina 1
-        break;
+
+    if (page != lastPage) {
+      lastPage = page;  // aggiorna
+      switch (page) {
+        case 1: page1(); break;
+        case 2: page2(); break;
+        case 3: page3(); break;
+        case 4: page4(); break;
+        case 5: page5(); break;
+        case 6: page6(); break;
+        case 7: page7(); break;
+      }
     }
   }
 }
@@ -380,9 +403,24 @@ void cambio_pagina() {
 void checkInactivity() {
   if ((millis() - lastActivity > timeout) && page != 0) {
     Serial.println("⏳ Timeout inattività! Ritorno a 🏠 Home (page0)");
+    tft.fillScreen(sfondo_page0);
+    drawWiFiSymbol(400, 20);
+    drawGearIcon(445, 25);
+
+    tft.setTextColor(TFT_WHITE, sfondo_page0);
+    tft.setTextSize(5);
+    tft.setCursor(60, 50);
+    tft.println("Casa Casetta");
+    tft.setTextSize(2);
+    tft.setCursor(120, 300);
+    tft.println("Premi per proseguire");
     loop();
   }
 }
+
+//=============================================================================
+// calendario e todo list
+//=============================================================================
 
 void fetchAndParseICal() {
   now = time(nullptr);  // ora corrente
@@ -642,6 +680,10 @@ void printTasksTFT() {
   }
 }
 
+//=============================================================================
+// calibrazione touch
+//=============================================================================
+
 void touch_calibrate() {
   uint16_t calData[5];
   uint8_t calDataOK = 0;
@@ -693,12 +735,18 @@ void touch_calibrate() {
     Serial.println("Calibrazione salvata");
   }
 
-  /* tft.fillScreen(TFT_BLACK);
+  // Lascia vuoto o aggiungi un messaggio di conferma
+  tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextSize(2);
-  tft.setCursor(20, 20);
-  tft.println("Touch test - calibrato");*/
+  tft.setCursor(20, 140);
+  tft.println("Calibrazione completata!");
+  delay(1000);
 }
+
+//=============================================================================
+// disegno icone
+//=============================================================================
 
 void drawArrows() {
   // Freccia sinistra
@@ -733,172 +781,6 @@ void drawWiFiSymbol(int x, int y) {
       tft.drawPixel(px, py, color);
     }
   }
-}
-
-void drawScrollBar(int x, int y, int h, int posizioni) {
-  //se 0 tutte e due le frecce, se 1 solo quella su, se 2 solo quella giu
-  int w = 25;                     // larghezza fissa della barra
-  int arrowH = 25;                // altezza area freccia
-  int trackH = h - (arrowH * 2);  // area centrale
-
-  // sfondo
-  tft.fillRect(x, y, w, h, TFT_DARKGREY);
-
-  // freccia SU
-  if (posizioni == 0 || posizioni == 1) {
-    tft.fillTriangle(x + w / 2, y + 5, x + 5, y + arrowH - 5, x + w - 5, y + arrowH - 5, TFT_WHITE);
-  }
-  // freccia GIÙ
-  int yb = y + h - arrowH;
-  if (posizioni == 0 || posizioni == 2) {
-    tft.fillTriangle(x + 5, yb + 5, x + w - 5, yb + 5, x + w / 2, yb + arrowH - 5, TFT_WHITE);
-  }
-  // binario centrale
-  tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
-}
-
-void stato_scroll_bar1() {
-  for (int y = 70; y < 320; y = y + 50) {
-    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
-  }
-
-  drawScrollBar(450, 20, 300, 2);
-  tft.fillRect(453, 45, 21, 20, TFT_GREEN);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(30, 80);
-  tft.println("1 Collegamento Wi-Fi");
-  drawCircleWithDot(415, 90, 15);
-  tft.setCursor(30, 130);
-  tft.println("2 Sinc NTP");
-  drawCircleWithDot(415, 140, 15);
-  tft.setCursor(30, 180);
-  tft.println("3 Calib touch");
-  drawCircleWithDot(415, 190, 15);
-  tft.setCursor(30, 230);
-  tft.println("4");
-  tft.setCursor(30, 280);
-  tft.println("5");
-  while (1) {
-    stato_scroll_bar = touchMenu(stato_scroll_bar);
-    TouchPoint tp = touch_coordinate();
-    if (tp.touched) {
-      if (tp.x > 410 && tp.x < 430 && tp.y > 220 && tp.y < 250) {
-        drawCaricamento(415, 90, 2);
-        connessioneWiFi();
-        drawCaricamento(415, 90, 2);
-        tft.fillRect(400, 75, 31, 31, TFT_LIGHTGREY);
-        drawCircleWithDot(415, 90, 15);
-      } else if (tp.x > 410 && tp.x < 430 && tp.y > 150 && tp.y < 180) {
-        Serial.println("ricalibrazione ntp");
-        drawCaricamento(415, 140, 2);
-        connessioneNTP();
-        drawCaricamento(415, 140, 2);
-        tft.fillRect(400, 125, 31, 31, TFT_LIGHTGREY);
-        drawCircleWithDot(415, 140, 15);
-      } else if (tp.x > 410 && tp.x < 430 && tp.y > 100 && tp.y < 130) {
-        Serial.println("calibrazione touch");
-        drawCaricamento(415, 190, 2);
-        touch_calibrate();
-        esci_dal_loop = 0;
-        pageImpostazioni();
-      }
-    }
-    if (stato_scroll_bar != 1) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
-    }
-  }
-}
-
-void stato_scroll_bar2() {
-  int knobY = 49.6;
-
-  for (int y = 70; y < 320; y = y + 50) {
-    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
-  }
-
-  drawScrollBar(450, 20, 300, 0);
-  tft.fillRect(453, 150, 21, 20, TFT_GREEN);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(30, 80);
-  tft.println("6");
-  tft.setCursor(30, 130);
-  tft.println("7");
-  tft.setCursor(30, 180);
-  tft.println("8");
-  tft.setCursor(30, 230);
-  tft.println("9");
-  tft.setCursor(30, 280);
-  tft.println("10");
-  while (1) {
-    stato_scroll_bar = touchMenu(stato_scroll_bar);
-    //  Serial.println("stato della scroll bar 2");
-    if (stato_scroll_bar != 2) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
-    }
-  }
-}
-
-void stato_scroll_bar3() {
-  for (int y = 70; y < 320; y = y + 50) {
-    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
-  }
-
-  drawScrollBar(450, 20, 300, 1);
-  tft.fillRect(453, 275, 21, 20, TFT_GREEN);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_WHITE);
-  tft.setCursor(30, 80);
-  tft.println("11");
-  tft.setCursor(30, 130);
-  tft.println("12");
-  tft.setCursor(30, 180);
-  tft.println("13");
-  tft.setCursor(30, 230);
-  tft.println("14");
-  tft.setCursor(30, 280);
-  tft.println("15");
-  while (1) {
-    stato_scroll_bar = touchMenu(stato_scroll_bar);
-    // Serial.println("stato della scroll bar 3");
-    if (stato_scroll_bar != 3) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
-    }
-  }
-}
-
-int touchMenu(int stato_scroll_bar) {
-  uint16_t x, y;  // coordinate touch
-  if (tft.getTouch(&x, &y)) {
-
-    // freccia su
-    if (x > 440 && y < 25) {
-      if (stato_scroll_bar < 3) {
-        Serial.println(stato_scroll_bar);
-        stato_scroll_bar++;
-        Serial.println("⬇️ Scroll DOWN");
-      } else {
-        //  Serial.println("limite");
-      }
-    }
-
-    // freccia giù
-    if (x > 440 && y > 270) {
-      if (stato_scroll_bar > 1) {
-        stato_scroll_bar--;
-        Serial.println("⬆️ Scroll UP");
-        Serial.println(stato_scroll_bar);
-      } else {
-        //  Serial.println("limite");
-      }
-    }
-  }
-
-  return stato_scroll_bar;  // Restituisce il valore (modificato o no)
 }
 
 void drawGearIcon(int x, int y) {
@@ -951,50 +833,6 @@ void drawGearIcon(int x, int y) {
   // Rinforza il cerchio esterno
   for (int r = 10; r <= 13; r++) {
     tft.drawCircle(x, y, r, color);
-  }
-}
-
-void connessioneWiFi() {
-  int tentativi = 0;
-  const int maxTentativi = 5;
-
-  Serial.print("📶 Connessione al WiFi: ");
-  Serial.println(ssid);
-
-  WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED && tentativi < maxTentativi) {
-    delay(1000);  // attesa 1 secondo tra i tentativi
-    Serial.print(".");
-    tentativi++;
-  }
-
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println("\n✅🛜 WiFi connesso!");
-    Serial.print("🌐 IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println("\n❌ WiFi non connesso, proseguo con il programma...");
-  }
-}
-
-void connessioneNTP() {
-  int tentativi = 0;
-  const int maxTentativi = 5;
-
-  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
-  Serial.println("⏱ Attendo sincronizzazione NTP...");
-
-  while (!getLocalTime(&timeinfo) && tentativi < maxTentativi) {
-    delay(500);
-    Serial.print("⌛");
-    tentativi++;
-  }
-
-  if (tentativi < maxTentativi) {
-    Serial.println("\n✅🕒 Ora e data ottenute!");
-  } else {
-    Serial.println("\n❌ NTP non sincronizzato, proseguo con il programma...");
   }
 }
 
@@ -1126,7 +964,290 @@ void drawCaricamento(int cx, int cy, int num_giri) {
   }
 }
 
+//=============================================================================
+// scorrimento delle pagine impostazioni
+//=============================================================================
 
+void drawScrollBar(int x, int y, int h, int posizioni) {
+  //se 0 tutte e due le frecce, se 1 solo quella su, se 2 solo quella giu
+  int w = 25;                     // larghezza fissa della barra
+  int arrowH = 25;                // altezza area freccia
+  int trackH = h - (arrowH * 2);  // area centrale
+
+  // sfondo
+  tft.fillRect(x, y, w, h, TFT_DARKGREY);
+
+  // freccia SU
+  if (posizioni == 0 || posizioni == 1) {
+    tft.fillTriangle(x + w / 2, y + 5, x + 5, y + arrowH - 5, x + w - 5, y + arrowH - 5, TFT_WHITE);
+  }
+  // freccia GIÙ
+  int yb = y + h - arrowH;
+  if (posizioni == 0 || posizioni == 2) {
+    tft.fillTriangle(x + 5, yb + 5, x + w - 5, yb + 5, x + w / 2, yb + arrowH - 5, TFT_WHITE);
+  }
+  // binario centrale
+  tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
+}
+
+void stato_scroll_bar1() {
+  for (int y = 70; y < 320; y = y + 50) {
+    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
+  }
+
+  drawScrollBar(450, 20, 300, 2);
+  tft.fillRect(453, 45, 21, 20, TFT_GREEN);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(30, 80);
+  tft.println("1 Collegamento Wi-Fi");
+  drawCircleWithDot(415, 90, 15);
+  tft.setCursor(30, 130);
+  tft.println("2 Sinc NTP");
+  drawCircleWithDot(415, 140, 15);
+  tft.setCursor(30, 180);
+  tft.println("3 Calib touch");
+  drawCircleWithDot(415, 190, 15);
+  tft.setCursor(30, 230);
+  tft.println("4");
+  tft.setCursor(30, 280);
+  tft.println("5");
+  while (1) {
+    stato_scroll_bar = touchMenu(stato_scroll_bar);
+    TouchPoint tp = touch_coordinate();
+    if (tp.touched) {
+      if (tp.x > 410 && tp.x < 430 && tp.y > 220 && tp.y < 250) {
+        drawCaricamento(415, 90, 2);
+        connessioneWiFi();
+        drawCaricamento(415, 90, 2);
+        tft.fillRect(400, 75, 31, 31, TFT_LIGHTGREY);
+        drawCircleWithDot(415, 90, 15);
+      } else if (tp.x > 410 && tp.x < 430 && tp.y > 150 && tp.y < 180) {
+        Serial.println("ricalibrazione ntp");
+        drawCaricamento(415, 140, 2);
+        connessioneNTP();
+        drawCaricamento(415, 140, 2);
+        tft.fillRect(400, 125, 31, 31, TFT_LIGHTGREY);
+        drawCircleWithDot(415, 140, 15);
+      } else if (tp.x > 410 && tp.x < 430 && tp.y > 100 && tp.y < 130) {
+        Serial.println("calibrazione touch");
+        drawCaricamento(415, 190, 2);
+        touch_calibrate();
+        return;
+      }
+    }
+    if (stato_scroll_bar != 1) {
+      Serial.println("ho braikato");
+      pageImpostazioni();
+    }
+  }
+}
+
+void stato_scroll_bar2() {
+  int knobY = 49.6;
+
+  for (int y = 70; y < 320; y = y + 50) {
+    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
+  }
+
+  drawScrollBar(450, 20, 300, 0);
+  tft.fillRect(453, 150, 21, 20, TFT_GREEN);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(30, 80);
+  tft.println("6");
+  tft.setCursor(30, 130);
+  tft.println("7");
+  tft.setCursor(30, 180);
+  tft.println("8");
+  tft.setCursor(30, 230);
+  tft.println("9");
+  tft.setCursor(30, 280);
+  tft.println("10");
+  while (1) {
+    stato_scroll_bar = touchMenu(stato_scroll_bar);
+    //  Serial.println("stato della scroll bar 2");
+    if (stato_scroll_bar != 2) {
+      Serial.println("ho braikato");
+      pageImpostazioni();
+    }
+  }
+}
+
+void stato_scroll_bar3() {
+  for (int y = 70; y < 320; y = y + 50) {
+    tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
+  }
+
+  drawScrollBar(450, 20, 300, 1);
+  tft.fillRect(453, 275, 21, 20, TFT_GREEN);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(30, 80);
+  tft.println("11");
+  tft.setCursor(30, 130);
+  tft.println("12");
+  tft.setCursor(30, 180);
+  tft.println("13");
+  tft.setCursor(30, 230);
+  tft.println("14");
+  tft.setCursor(30, 280);
+  tft.println("15");
+  while (1) {
+    stato_scroll_bar = touchMenu(stato_scroll_bar);
+    // Serial.println("stato della scroll bar 3");
+    if (stato_scroll_bar != 3) {
+      Serial.println("ho braikato");
+      pageImpostazioni();
+    }
+  }
+}
+
+int touchMenu(int stato_scroll_bar) {
+  uint16_t x, y;  // coordinate touch
+  if (tft.getTouch(&x, &y)) {
+
+    // freccia su
+    if (x > 440 && y < 25) {
+      if (stato_scroll_bar < 3) {
+        Serial.println(stato_scroll_bar);
+        stato_scroll_bar++;
+        Serial.println("⬇️ Scroll DOWN");
+      } else {
+        //  Serial.println("limite");
+      }
+    }
+
+    // freccia giù
+    if (x > 440 && y > 270) {
+      if (stato_scroll_bar > 1) {
+        stato_scroll_bar--;
+        Serial.println("⬆️ Scroll UP");
+        Serial.println(stato_scroll_bar);
+      } else {
+        //  Serial.println("limite");
+      }
+    }
+  }
+
+  return stato_scroll_bar;  // Restituisce il valore (modificato o no)
+}
+
+//=============================================================================
+// connessioni
+//=============================================================================
+
+void connessioneWiFi() {
+  int tentativi = 0;
+  const int maxTentativi = 5;
+
+  Serial.print("📶 Connessione al WiFi: ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED && tentativi < maxTentativi) {
+    delay(1000);  // attesa 1 secondo tra i tentativi
+    Serial.print(".");
+    tentativi++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅🛜 WiFi connesso!");
+    Serial.print("🌐 IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println("\n❌ WiFi non connesso, proseguo con il programma...");
+  }
+}
+void connessioneNTP() {
+  int tentativi = 0;
+  const int maxTentativi = 5;
+
+  configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+  Serial.println("⏱ Attendo sincronizzazione NTP...");
+
+  while (!getLocalTime(&timeinfo) && tentativi < maxTentativi) {
+    delay(500);
+    Serial.print("⌛");
+    tentativi++;
+  }
+
+  if (tentativi < maxTentativi) {
+    Serial.println("\n✅🕒 Ora e data ottenute!");
+  } else {
+    Serial.println("\n❌ NTP non sincronizzato, proseguo con il programma...");
+  }
+}
+
+//=============================================================================
+// solo a scopo di testing
+//=============================================================================
+
+void test_touch() {
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextSize(3);
+  tft.setCursor(50, 20);
+  tft.println("TEST TOUCH");
+  tft.setTextSize(2);
+  tft.setCursor(20, 60);
+  tft.println("Tocca lo schermo");
+  tft.setCursor(20, 90);
+  tft.println("Premi HOME per uscire");
+
+  // Disegna l'icona HOME in basso a destra
+  drawHouse();
+
+  unsigned long lastPrint = 0;
+  uint16_t lastX = 0, lastY = 0;
+
+  while (1) {
+    uint16_t x, y;
+
+    if (tft.getTouch(&x, &y)) {
+      // Aggiorna solo se è passato un po' di tempo o coordinate diverse
+      // per evitare spam sulla seriale
+      if (millis() - lastPrint > 100 || abs(x - lastX) > 5 || abs(y - lastY) > 5) {
+
+        // Stampa su seriale
+        Serial.print("Touch X: ");
+        Serial.print(x);
+        Serial.print(" | Y: ");
+        Serial.println(y);
+
+        // Mostra anche sul display
+        tft.fillRect(0, 140, 480, 60, TFT_BLACK);  // Cancella area coordinate
+        tft.setTextSize(3);
+        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
+        tft.setCursor(20, 150);
+        tft.print("X: ");
+        tft.print(x);
+        tft.setCursor(20, 180);
+        tft.print("Y: ");
+        tft.print(y);
+
+        // Disegna un punto dove hai toccato
+        tft.fillCircle(x, y, 3, TFT_RED);
+
+        lastPrint = millis();
+        lastX = x;
+        lastY = y;
+      }
+
+      // Check se hai premuto l'icona HOME per uscire
+      if (x < 60 && y < 60) {
+        Serial.println("Uscita dal test touch");
+        delay(500);  // Debounce
+        return;      // Esce dalla funzione
+      }
+    }
+
+    delay(10);  // Piccolo delay per non sovraccaricare
+  }
+}
+
+/*
 void controlloLapadina() {
   // Pulsante ON/OFF
   disegnaPulsanteOnOff(led_acceso);
@@ -1249,7 +1370,7 @@ void disegnaAnteprimaColore(int cx, int cy, int raggio) {
   tft.print(" G:");
   tft.print(led_g);
   tft.print(" B:");
-  tft.print(led_b);*/
+  tft.print(led_b);
 }
 
 // Disegna uno slider orizzontale
@@ -1382,3 +1503,4 @@ void inviaComandoBluetooth() {
     // BluetoothSerial.println(led_b);
   }
 }
+*/
