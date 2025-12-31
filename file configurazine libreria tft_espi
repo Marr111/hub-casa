@@ -1,0 +1,23 @@
+// User_Setup.h per ST7796 con touch XPT2046
+
+#define USER_SETUP_ID 52
+
+// Driver display
+#define ST7796_DRIVER
+
+// Pin connessioni display
+#define TFT_MOSI 11
+#define TFT_SCLK 12  
+#define TFT_CS   10
+#define TFT_DC    9
+
+
+#define TFT_MISO 13
+#define TFT_BL   15
+
+// Configurazione touch XPT2046 - AGGIUNGI QUESTE RIGHE
+#define TOUCH_CS 17
+#define TOUCH_IRQ 16
+
+// Abilita supporto touch
+#define TOUCH_DRIVER 2046  // XPT2046 touch controller
