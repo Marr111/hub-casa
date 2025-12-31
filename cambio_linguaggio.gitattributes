@@ -2,3 +2,8 @@
 *.h linguist-language=C++
 *.cpp linguist-language=C++
 *.c linguist-language=C++
+
+# Ignora file di cronologia e documentazione dalle statistiche
+*.history linguist-vendored
+.history/** linguist-vendored
+*.md linguist-documentation
