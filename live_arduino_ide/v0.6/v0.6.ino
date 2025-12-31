@@ -1,3 +1,8 @@
+//dopo che hai finito salva su ide arduino e poi fa questi comandi nel cmd o powerschell
+//git add .
+//git commit -m "Un commento"
+//git push
+
 //problemi - errori da risolvere
 // -pagina impostazioni --> bug della calibrazione touch --> in teoria fixato da ia controllare
 // -cambio pagina --> aggiungere ritorno alla home con la casetta (gia implementata)
