@@ -249,7 +249,19 @@ void setup() {
   Serial.println("✓ SPI pins configured");
   
   // ========================================
-  // FASE 5: INIZIALIZZAZIONE DISPLAY
+  // FASE 5: INIZIALIZZAZIONE SPI BUS (CRITICO!)
+  // ========================================
+  Serial.println("\n--- Initializing SPI Bus ---");
+  
+  // ESP32-S3 richiede inizializzazione esplicita del bus SPI
+  // DEVE essere fatto PRIMA di tft.init()
+  SPI.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, -1);
+  delay(100);
+  
+  Serial.println("✓ SPI bus initialized");
+  
+  // ========================================
+  // FASE 6: INIZIALIZZAZIONE DISPLAY
   // ========================================
   Serial.println("\n--- Initializing TFT Display ---");
   
@@ -282,7 +294,7 @@ void setup() {
   digitalWrite(TFT_BL, HIGH);
   
   // ========================================
-  // FASE 6: SPLASH SCREEN
+  // FASE 7: SPLASH SCREEN
   // ========================================
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextSize(4);
@@ -294,7 +306,7 @@ void setup() {
   delay(500);  // Mostra il messaggio
   
   // ========================================
-  // FASE 7: INIZIALIZZAZIONE TOUCH
+  // FASE 8: INIZIALIZZAZIONE TOUCH
   // ========================================
   Serial.println("\n--- Initializing Touch ---");
   pinMode(TOUCH_CS, OUTPUT);
@@ -304,7 +316,7 @@ void setup() {
   Serial.println("✓ Touch pins configured");
   
   // ========================================
-  // FASE 8: WIFI & NTP
+  // FASE 9: WIFI & NTP
   // ========================================
   Serial.println("\n--- Starting WiFi Connection ---");
   connessioneWiFi();
@@ -318,13 +330,13 @@ void setup() {
   tzset();
   
   // ========================================
-  // FASE 9: CALIBRAZIONE TOUCH
+  // FASE 10: CALIBRAZIONE TOUCH
   // ========================================
   Serial.println("\n--- Touch Calibration ---");
   touch_calibrate();
   
   // ========================================
-  // FASE 10: INTERFACCIA PRINCIPALE
+  // FASE 11: INTERFACCIA PRINCIPALE
   // ========================================
   Serial.println("\n--- Drawing Main Interface ---");
   tft.fillScreen(sfondo_page0);
@@ -350,6 +362,7 @@ void setup() {
   Serial.printf("Total setup time: %lu ms\n", millis());
   Serial.printf("Free heap after setup: %d bytes\n\n", ESP.getFreeHeap());
 }
+
 void loop()
 {
   uint16_t x, y;
