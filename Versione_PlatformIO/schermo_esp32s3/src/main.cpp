@@ -24,7 +24,6 @@ TFT_eSPI tft = TFT_eSPI();
 #define REPEAT_CAL false
 
 // Definizioni display
-#define ST7796_DRIVER
 #define TFT_WIDTH 320
 #define TFT_HEIGHT 480
 
@@ -181,6 +180,22 @@ void setup() {
   delay(500);
   Serial.println("✨ Inizializzazione ESP32-S3... ✨");
 
+  // 1. Configura e disabilita il Touch
+  pinMode(TOUCH_CS, OUTPUT);
+  digitalWrite(TOUCH_CS, HIGH); // HIGH = Disabilita (Zitto!)
+
+  // 2. Configura e disabilita il Display (per ora)
+  pinMode(TFT_CS, OUTPUT);
+  digitalWrite(TFT_CS, HIGH); // HIGH = Disabilita
+
+  // 3. Configura Retroilluminazione
+  pinMode(TFT_BL, OUTPUT);
+  digitalWrite(TFT_BL, HIGH);
+  
+  if (!SPIFFS.begin(true)) {
+    Serial.println("Errore montaggio SPIFFS");
+  }
+
   // Inizializza display
   tft.init();
   tft.setRotation(1);
@@ -219,6 +234,7 @@ void setup() {
   drawWiFiSymbol(400, 20);
   drawGearIcon(445, 25);
 
+
   tft.setTextColor(TFT_WHITE, sfondo_page0);
   tft.setTextSize(5);
   tft.setCursor(60, 50);
@@ -227,7 +243,6 @@ void setup() {
   tft.setCursor(120, 300);
   tft.println("Premi per proseguire");
 }
-
 void loop() {
   uint16_t x, y;
   page = 0;

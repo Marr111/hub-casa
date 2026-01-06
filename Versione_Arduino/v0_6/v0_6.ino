@@ -360,7 +360,7 @@ void cambio_pagina() {
     if (x < 420 && y < 40) {
       Serial.println("Ritorno al loop");
 
-      tft.fillScre60en(sfondo_page0);  //grafica pagina principale
+      tft.fillScreen(sfondo_page0);  //grafica pagina principale
       tft.setTextColor(TFT_WHITE, sfondo_page0);
       tft.setTextSize(5);
       tft.setCursor(60, 50);
