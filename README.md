@@ -118,10 +118,10 @@ git clone https://github.com/tuousername/casa-casetta.git
 cd casa-casetta
 ```
 
-Apri il file .ino in Arduino IDE
-Seleziona Board: ESP32S3 Dev Module 
-Porta: /dev/ttyUSB0 (o COMx su Windows) 
-Upload! 
+  - Apri il file .ino in Arduino IDE
+  - Seleziona Board: ESP32S3 Dev Module 
+  - Porta: /dev/ttyUSB0 (o COMx su Windows) 
+  - Upload! 
 
 
 ## ⚙️ Configurazione
@@ -244,7 +244,7 @@ Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per mag
 
 **Matteo Casetta**
 
-- GitHub: [@tuousername](https://github.com/tuousername)
+- GitHub: [@Marr111](https://github.com/tuousername)
 - Email: casettamatteo1@gmail.com
 
 ## 🙏 Ringraziamenti
