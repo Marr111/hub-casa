@@ -50,6 +50,8 @@ Hub domotico basato su **ESP32-S3** con display touchscreen **ST7789** per il co
 #define TOUCH_CS 14
 ```
 
+per maggiori informazioni consultare il file `User_Setup.h`
+
 ## 🚀 Funzionalità Implementate
 
 ### ✅ Completate
