@@ -116,12 +116,13 @@ Modificare il file `User_Setup.h` nella cartella della libreria TFT_eSPI:
 # Clone del repository
 git clone https://github.com/tuousername/casa-casetta.git
 cd casa-casetta
-
-# Apri il file .ino in Arduino IDE
-# Seleziona Board: ESP32S3 Dev Module
-# Porta: /dev/ttyUSB0 (o COMx su Windows)
-# Upload!
 ```
+
+Apri il file .ino in Arduino IDE
+Seleziona Board: ESP32S3 Dev Module
+Porta: /dev/ttyUSB0 (o COMx su Windows)
+Upload!
+
 
 ## ⚙️ Configurazione
 
