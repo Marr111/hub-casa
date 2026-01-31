@@ -244,7 +244,7 @@ Questo progetto è distribuito sotto licenza MIT. Vedi il file `LICENSE` per mag
 
 **Matteo Casetta**
 
-- GitHub: [@Marr111](https://github.com/tuousername)
+- GitHub: [@Marr111](https://github.com/Marr111)
 - Email: casettamatteo1@gmail.com
 
 ## 🙏 Ringraziamenti
