@@ -210,8 +210,9 @@ void switchPage(int p) {
 
 void checkInactivity() {
   if ((millis() - lastActivity > INACTIVITY_TIMEOUT) && page != 0) {
-    Serial.println("⏳ Timeout inattività!");
-    page = 0;
+    Serial.println("⏳ Timeout inattività! Ritorno a 🏠 Home (page0)");
+    disegnaHome();
+    loop();
   }
 }
 
