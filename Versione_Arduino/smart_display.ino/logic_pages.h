@@ -7,6 +7,12 @@
 // GESTIONE PAGINE E NAVIGAZIONE
 // ============================================================================
 
+void waitRelease() {
+  uint16_t x, y;
+  while (tft.getTouch(&x, &y)) { delay(10); }
+  delay(100);
+}
+
 void page1() {
   tft.fillScreen(sfondo_page1);
   tft.setTextColor(TFT_WHITE, sfondo_page1);
@@ -16,8 +22,8 @@ void page1() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 1) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -33,8 +39,8 @@ void page2() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 2) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -50,8 +56,8 @@ void page3() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 3) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -66,8 +72,8 @@ void page4() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 4) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -82,8 +88,8 @@ void page5() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 5) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -98,8 +104,8 @@ void page6() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 6) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -114,8 +120,8 @@ void page7() {
   drawArrows();
   drawHouse();
 
-  while (1) {
-    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
+  while (page == 7) {
+    cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
     delay(10);
   }
@@ -130,12 +136,11 @@ void pageImpostazioni() {
   drawScrollBar(450, 20, 300, 2);
   drawHouse();
 
+  waitRelease();  // Debounce iniziale
+
   for (int y = 70; y < 320; y = y + 50) {
     tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
   }
-
-  // --- SOLUZIONE: Attendi un momento che il dito venga alzato ---
-  delay(300); 
 
   esci_dal_loop = 1;
   while (esci_dal_loop == 1) {
@@ -148,92 +153,65 @@ void pageImpostazioni() {
       // Se premi la casetta (coordinate 0-60)
       if (tx < 60 && ty < 60) {
         Serial.println("Uscita da Impostazioni");
+        page = 0;
         esci_dal_loop = 0;
       }
     }
     delay(10);
   }
-
-  // Resetta i parametri per il loop principale
-  page = 0;
-  lastPage = -1;
-  // Aggiungi un piccolo delay anche qui per evitare di rientrare subito in page1
-  delay(200); 
+  waitRelease();
 }
 
-bool cambio_pagina() {
+void cambio_pagina() {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     lastActivity = millis();
 
-    // Ritorno home
-    if (x < 420 && y < 40) {
-      Serial.println("Ritorno al loop");
-      tft.fillScreen(sfondo_page0);
-      tft.setTextColor(TFT_WHITE, sfondo_page0);
-      tft.setTextSize(5);
-      tft.setCursor(60, 50);
-      tft.println("Casa Casetta");
-      tft.setTextSize(2);
-      tft.setCursor(120, 300);
-      tft.println("Premi per proseguire");
-      drawWiFiSymbol(400, 20);  // Ridisegna icone
-      drawGearIcon(445, 25);
-      loop();
+    // Tasto HOME
+    if (x < 60 && y < 420) {
+      page = 0;
+      waitRelease();
+      return;
     }
 
-    // Freccia sinistra
-    if (page > 1) {
-      if (x > 20 && x < 60 && y > tft.height() / 2 - 30 && y < tft.height() / 2 + 30) {
-        Serial.println("Freccia sinistra premuta");
-        page = page - 1;
-        Serial.print("Pagina ");
-        Serial.println(page);
+    // FRECCIA DESTRA (Esempio coordinate)
+    if (x > 400 && y > 100 && y < 200) {
+      if (page < 7) {
+        page++;
+        waitRelease();  // BLOCCA il codice finché non alzi il dito
       }
     }
 
-    // Freccia destra
-    if (page < 7) {
-      if (x > tft.width() - 60 && x < tft.width() - 20 && y > tft.height() / 2 - 30 && y < tft.height() / 2 + 30) {
-        Serial.println("Freccia destra premuta");
-        page = page + 1;
-        Serial.print("Pagina ");
-        Serial.println(page);
+    // FRECCIA SINISTRA
+    if (x < 80 && y > 100 && y < 200) {
+      if (page > 1) {
+        page--;
+        waitRelease();
       }
-    }
-
-    if (page != lastPage) {
-      lastPage = page;
-      switch (page) {
-        case 1: page1(); break;
-        case 2: page2(); break;
-        case 3: page3(); break;
-        case 4: page4(); break;
-        case 5: page5(); break;
-        case 6: page6(); break;
-        case 7: page7(); break;
-      }
-      return true;  // Esci dalla pagina attuale perché ne abbiamo aperta un'altra
     }
   }
-  return false;  // Nessun cambio pagina richiesto
+}
+
+// Funzione di smistamento per evitare ricorsione in cambio_pagina
+void switchPage(int p) {
+  switch (p) {
+    case 0:
+      disegnaHome();  // Disegna e gestisce il touch della home
+      break;
+    case 1: page1(); break;
+    case 2: page2(); break;
+    case 3: page3(); break;
+    case 4: page4(); break;
+    case 5: page5(); break;
+    case 6: page6(); break;
+    case 7: page7(); break;
+  }
 }
 
 void checkInactivity() {
   if ((millis() - lastActivity > INACTIVITY_TIMEOUT) && page != 0) {
-    Serial.println("⏳ Timeout inattività! Ritorno a 🏠 Home (page0)");
-    tft.fillScreen(sfondo_page0);
-    drawWiFiSymbol(400, 20);
-    drawGearIcon(445, 25);
-
-    tft.setTextColor(TFT_WHITE, sfondo_page0);
-    tft.setTextSize(5);
-    tft.setCursor(60, 50);
-    tft.println("Casa Casetta");
-    tft.setTextSize(2);
-    tft.setCursor(120, 300);
-    tft.println("Premi per proseguire");
-    loop();
+    Serial.println("⏳ Timeout inattività!");
+    page = 0;
   }
 }
 
@@ -264,9 +242,10 @@ void stato_scroll_bar1() {
   tft.setCursor(30, 280);
   tft.println("5");
 
-  while (1) {
+  while (stato_scroll_bar == 1) {
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     TouchPoint tp = touch_coordinate();
+    checkInactivity();
 
     if (tp.touched) {
       // WiFi
@@ -291,14 +270,10 @@ void stato_scroll_bar1() {
         Serial.println("calibrazione touch");
         drawCaricamento(415, 190, 2);
         touch_calibrate();
-        return;
+        stato_scroll_bar1();
       }
     }
-
-    if (stato_scroll_bar != 1) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
-    }
+    if (stato_scroll_bar != 1) return;
   }
 }
 
@@ -323,6 +298,7 @@ void stato_scroll_bar2() {
   tft.println("10");
 
   while (1) {
+    checkInactivity();
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     if (stato_scroll_bar != 2) {
       Serial.println("ho braikato");
@@ -352,6 +328,7 @@ void stato_scroll_bar3() {
   tft.println("15");
 
   while (1) {
+    checkInactivity();
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     if (stato_scroll_bar != 3) {
       Serial.println("ho braikato");

@@ -228,4 +228,18 @@ void drawScrollBar(int x, int y, int h, int posizioni) {
   tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
 }
 
+void disegnaHome(){
+  tft.fillScreen(sfondo_page0);
+  drawWiFiSymbol(400, 20);
+  drawGearIcon(445, 25);
+
+  tft.setTextColor(TFT_WHITE, sfondo_page0);
+  tft.setTextSize(5);
+  tft.setCursor(60, 50);
+  tft.println("Casa Casetta");
+  tft.setTextSize(2);
+  tft.setCursor(120, 300);
+  tft.println("Premi per proseguire");
+}
+
 #endif

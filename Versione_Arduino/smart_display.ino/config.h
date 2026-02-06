@@ -158,6 +158,9 @@ void touch_calibrate();
 void test_touch();
 
 // Logic Pages Functions
+extern int page;
+extern int lastPage;
+
 void page1();
 void page2();
 void page3();
@@ -166,11 +169,14 @@ void page5();
 void page6();
 void page7();
 void pageImpostazioni();
-bool cambio_pagina();
+void cambio_pagina();
 void checkInactivity();
 void stato_scroll_bar1();
 void stato_scroll_bar2();
 void stato_scroll_bar3();
 int touchMenu(int stato_scroll_bar);
+void disegnaHome();
+void waitRelease();
+void switchPage(int p);
 
 #endif // CONFIG_H

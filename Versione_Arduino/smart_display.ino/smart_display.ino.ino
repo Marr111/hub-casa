@@ -72,7 +72,7 @@ void setup() {
   // Connessioni
   connessioneWiFi();
   connessioneNTP();
-  touch_calibrate();
+  //touch_calibrate();
 
   // Imposta timezone (Europe/Rome)
   setenv("TZ", "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00", 1);
@@ -83,52 +83,50 @@ void setup() {
   // printEvents();
 
   Serial.println("🚀 Setup completato!");
-
-  // Schermata principale
-  tft.fillScreen(sfondo_page0);
-  drawWiFiSymbol(400, 20);
-  drawGearIcon(445, 25);
-
-  tft.setTextColor(TFT_WHITE, sfondo_page0);
-  tft.setTextSize(5);
-  tft.setCursor(60, 50);
-  tft.println("Casa Casetta");
-  tft.setTextSize(2);
-  tft.setCursor(120, 300);
-  tft.println("Premi per proseguire");
+  page = 0;
+  disegnaHome();
 }
 
 // ============================================================================
 // LOOP PRINCIPALE
 // ============================================================================
 void loop() {
-  uint16_t x, y;
-  page = 0;
-  static String ultimaOra = "";  // Memorizza l'ultima ora scritta
-  ora = getTime();
+  if (page == 0) {
+    ora = getTime();
+    static String ultimaOra = "";
 
-  if (ora != ultimaOra) {  // Mostra ora e data se è diversa dalla precedente
-    ultimaOra = ora;
-    dataLunga = getDateLong();
+    if (ora != ultimaOra) {
+      ultimaOra = ora;
+      dataLunga = getDateLong();
 
-    tft.setTextSize(4);
-    tft.setCursor(130, 130);
-    tft.println(ora);
-    tft.setTextSize(3);
-    tft.setCursor(75, 200);
-    tft.println(dataLunga);
-  }
+      tft.setTextColor(TFT_WHITE, sfondo_page0);
 
-  // Gestione touch
-  if (tft.getTouch(&x, &y)) {
-    if (x > 420 && y < 30) {
-      Serial.println("Apertura Impostazioni");
-      pageImpostazioni();
-      ultimaOra = "";
-    } else {
-      Serial.println("Apertura Pagina 1");
-      page1();
-      ultimaOra = "";
+      tft.setTextSize(4);
+      tft.setCursor(130, 130);
+      tft.println(ora);
+
+      tft.setTextSize(3);
+      tft.setCursor(75, 200);
+      tft.println(dataLunga);
+    }
+
+    uint16_t x, y;
+    if (tft.getTouch(&x, &y)) {
+      if (x > 400 && y < 300) {  // Area Ingranaggio
+        Serial.println("Apertura Impostazioni");
+        delay(200);  // Debounce
+        pageImpostazioni();
+        // Al ritorno, resettiamo tutto per la Home
+        page = 0;
+        ultimaOra = "";
+        disegnaHome();
+      } else {
+        page = 1;
+        while (page != 0) {
+          cambio_pagina();
+          switchPage(page);
+        }
+      }
     }
   }
 }
