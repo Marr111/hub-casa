@@ -166,7 +166,7 @@ void page5();
 void page6();
 void page7();
 void pageImpostazioni();
-void cambio_pagina();
+bool cambio_pagina();
 void checkInactivity();
 void stato_scroll_bar1();
 void stato_scroll_bar2();

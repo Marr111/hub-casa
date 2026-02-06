@@ -15,10 +15,11 @@ void page1() {
   tft.println("Pagina 1");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -31,10 +32,11 @@ void page2() {
   tft.println("Pagina 2");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -47,10 +49,11 @@ void page3() {
   tft.println("Pagina 3");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -62,10 +65,11 @@ void page4() {
   tft.println("LAMPADINA RGB BLUETOOTH");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -77,10 +81,11 @@ void page5() {
   tft.println("Pagina 5");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -92,10 +97,11 @@ void page6() {
   tft.println("Pagina 6");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -107,10 +113,11 @@ void page7() {
   tft.println("Pagina 7");
   drawArrows();
   drawHouse();
-  
+
   while (1) {
-    cambio_pagina();
+    if (cambio_pagina()) return;  // SE cambio_pagina è true, ESCI dal while e dalla funzione
     checkInactivity();
+    delay(10);
   }
 }
 
@@ -127,18 +134,34 @@ void pageImpostazioni() {
     tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
   }
 
+  // --- SOLUZIONE: Attendi un momento che il dito venga alzato ---
+  delay(300); 
+
+  esci_dal_loop = 1;
   while (esci_dal_loop == 1) {
     if (stato_scroll_bar == 1) stato_scroll_bar1();
     else if (stato_scroll_bar == 2) stato_scroll_bar2();
     else if (stato_scroll_bar == 3) stato_scroll_bar3();
-    delay(100);
+
+    uint16_t tx, ty;
+    if (tft.getTouch(&tx, &ty)) {
+      // Se premi la casetta (coordinate 0-60)
+      if (tx < 60 && ty < 60) {
+        Serial.println("Uscita da Impostazioni");
+        esci_dal_loop = 0;
+      }
+    }
+    delay(10);
   }
-  
-  loop();
-  esci_dal_loop = 1;
+
+  // Resetta i parametri per il loop principale
+  page = 0;
+  lastPage = -1;
+  // Aggiungi un piccolo delay anche qui per evitare di rientrare subito in page1
+  delay(200); 
 }
 
-void cambio_pagina() {
+bool cambio_pagina() {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     lastActivity = millis();
@@ -154,6 +177,8 @@ void cambio_pagina() {
       tft.setTextSize(2);
       tft.setCursor(120, 300);
       tft.println("Premi per proseguire");
+      drawWiFiSymbol(400, 20);  // Ridisegna icone
+      drawGearIcon(445, 25);
       loop();
     }
 
@@ -169,8 +194,7 @@ void cambio_pagina() {
 
     // Freccia destra
     if (page < 7) {
-      if (x > tft.width() - 60 && x < tft.width() - 20 && 
-          y > tft.height() / 2 - 30 && y < tft.height() / 2 + 30) {
+      if (x > tft.width() - 60 && x < tft.width() - 20 && y > tft.height() / 2 - 30 && y < tft.height() / 2 + 30) {
         Serial.println("Freccia destra premuta");
         page = page + 1;
         Serial.print("Pagina ");
@@ -189,8 +213,10 @@ void cambio_pagina() {
         case 6: page6(); break;
         case 7: page7(); break;
       }
+      return true;  // Esci dalla pagina attuale perché ne abbiamo aperta un'altra
     }
   }
+  return false;  // Nessun cambio pagina richiesto
 }
 
 void checkInactivity() {
@@ -241,7 +267,7 @@ void stato_scroll_bar1() {
   while (1) {
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     TouchPoint tp = touch_coordinate();
-    
+
     if (tp.touched) {
       // WiFi
       if (tp.x > 410 && tp.x < 430 && tp.y > 220 && tp.y < 250) {
@@ -250,7 +276,7 @@ void stato_scroll_bar1() {
         drawCaricamento(415, 90, 2);
         tft.fillRect(400, 75, 31, 31, TFT_LIGHTGREY);
         drawCircleWithDot(415, 90, 15);
-      } 
+      }
       // NTP
       else if (tp.x > 410 && tp.x < 430 && tp.y > 150 && tp.y < 180) {
         Serial.println("ricalibrazione ntp");
@@ -259,7 +285,7 @@ void stato_scroll_bar1() {
         drawCaricamento(415, 140, 2);
         tft.fillRect(400, 125, 31, 31, TFT_LIGHTGREY);
         drawCircleWithDot(415, 140, 15);
-      } 
+      }
       // Touch
       else if (tp.x > 410 && tp.x < 430 && tp.y > 100 && tp.y < 130) {
         Serial.println("calibrazione touch");
@@ -268,7 +294,7 @@ void stato_scroll_bar1() {
         return;
       }
     }
-    
+
     if (stato_scroll_bar != 1) {
       Serial.println("ho braikato");
       pageImpostazioni();

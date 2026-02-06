@@ -104,25 +104,31 @@ void setup() {
 void loop() {
   uint16_t x, y;
   page = 0;
-  dataLunga = getDateLong();
+  static String ultimaOra = "";  // Memorizza l'ultima ora scritta
   ora = getTime();
 
-  // Mostra ora e data
-  tft.setTextSize(4);
-  tft.setCursor(130, 130);
-  tft.println(ora);
-  tft.setTextSize(3);
-  tft.setCursor(75, 200);
-  tft.println(dataLunga);
+  if (ora != ultimaOra) {  // Mostra ora e data se è diversa dalla precedente
+    ultimaOra = ora;
+    dataLunga = getDateLong();
+
+    tft.setTextSize(4);
+    tft.setCursor(130, 130);
+    tft.println(ora);
+    tft.setTextSize(3);
+    tft.setCursor(75, 200);
+    tft.println(dataLunga);
+  }
 
   // Gestione touch
   if (tft.getTouch(&x, &y)) {
-    if (x > 440 && y > 280) {
+    if (x > 420 && y < 30) {
       Serial.println("Apertura Impostazioni");
       pageImpostazioni();
+      ultimaOra = "";
     } else {
       Serial.println("Apertura Pagina 1");
       page1();
+      ultimaOra = "";
     }
   }
 }
