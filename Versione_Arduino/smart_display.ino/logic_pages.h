@@ -25,6 +25,7 @@ void page1() {
   while (page == 1) {
     cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
+    printEventsTFT();
     delay(10);
   }
 }
@@ -42,6 +43,7 @@ void page2() {
   while (page == 2) {
     cambio_pagina();  // Gestisce solo il cambio della variabile 'page'
     checkInactivity();
+    printTasksTFT();
     delay(10);
   }
 }
@@ -169,16 +171,16 @@ void cambio_pagina() {
 
     // Tasto HOME
     if (x < 60 && y < 420) {
+      disegnaHome();
       page = 0;
-      waitRelease();
-      return;
+      delay(200);
     }
 
     // FRECCIA DESTRA (Esempio coordinate)
     if (x > 400 && y > 100 && y < 200) {
       if (page < 7) {
         page++;
-        waitRelease();  // BLOCCA il codice finché non alzi il dito
+        delay(200);
       }
     }
 
@@ -186,7 +188,7 @@ void cambio_pagina() {
     if (x < 80 && y > 100 && y < 200) {
       if (page > 1) {
         page--;
-        waitRelease();
+        delay(200);
       }
     }
   }
@@ -210,9 +212,10 @@ void switchPage(int p) {
 
 void checkInactivity() {
   if ((millis() - lastActivity > INACTIVITY_TIMEOUT) && page != 0) {
-    Serial.println("⏳ Timeout inattività! Ritorno a 🏠 Home (page0)");
+    Serial.println("⏳ Timeout!");
     disegnaHome();
-    loop();
+    page = 0;                 // Il loop principale si accorgerà del cambio e disegnerà la home
+    lastActivity = millis();  // Resetta per evitare loop continui
   }
 }
 
@@ -272,6 +275,10 @@ void stato_scroll_bar1() {
         drawCaricamento(415, 190, 2);
         touch_calibrate();
         stato_scroll_bar1();
+      } else if (tp.x > 60 && tp.y < 60) {  //ritorno alla home
+        page = 0;
+        esci_dal_loop = 0;
+        return;
       }
     }
     if (stato_scroll_bar != 1) return;
