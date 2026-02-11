@@ -3,24 +3,15 @@
 
 #include "config.h"
 
-// ============================================================================
-// FUNZIONI DI DISEGNO UI
-// ============================================================================
-
 void drawArrows() {
   // Freccia sinistra
-  tft.fillTriangle(
-    20, tft.height() / 2,
-    60, tft.height() / 2 - 30,
-    60, tft.height() / 2 + 30,
-    COLOR_ARROW);
+  tft.fillTriangle(20, tft.height() / 2, 60, tft.height() / 2 - 30, 60,
+                   tft.height() / 2 + 30, COLOR_ARROW);
 
   // Freccia destra
-  tft.fillTriangle(
-    tft.width() - 20, tft.height() / 2,
-    tft.width() - 60, tft.height() / 2 - 30,
-    tft.width() - 60, tft.height() / 2 + 30,
-    COLOR_ARROW);
+  tft.fillTriangle(tft.width() - 20, tft.height() / 2, tft.width() - 60,
+                   tft.height() / 2 - 30, tft.width() - 60,
+                   tft.height() / 2 + 30, COLOR_ARROW);
 }
 
 void drawWiFiSymbol(int x, int y) {
@@ -42,10 +33,10 @@ void drawWiFiSymbol(int x, int y) {
   }
 }
 
-void drawGearIcon(int x, int y) {
+void drawGearIcon(int x, int y, uint16_t bg) {
   uint16_t color = TFT_WHITE;
-  
-  tft.fillRect(x - 20, y - 20, 40, 40, sfondo_page0);
+
+  tft.fillRect(x - 20, y - 20, 40, 40, bg);
 
   // Centro
   tft.drawCircle(x, y, 5, color);
@@ -87,6 +78,11 @@ void drawGearIcon(int x, int y) {
   for (int r = 10; r <= 13; r++) {
     tft.drawCircle(x, y, r, color);
   }
+}
+
+// Overload comodo: usa lo sfondo di default della home
+void drawGearIcon(int x, int y) {
+  drawGearIcon(x, y, sfondo_page0);
 }
 
 void drawCircleWithDot(int x, int y, int radius) {
@@ -155,17 +151,21 @@ void drawHouse() {
   tft.fillRect(leftWindowX, windowY, windowSize, windowSize, windowColor);
   tft.drawRect(leftWindowX, windowY, windowSize, windowSize, frameColor);
   tft.drawLine(leftWindowX + windowSize / 2, windowY,
-               leftWindowX + windowSize / 2, windowY + windowSize, frameColor);
+               leftWindowX + windowSize / 2, windowY + windowSize,
+               frameColor);
   tft.drawLine(leftWindowX, windowY + windowSize / 2,
-               leftWindowX + windowSize, windowY + windowSize / 2, frameColor);
+               leftWindowX + windowSize, windowY + windowSize / 2,
+               frameColor);
 
   int rightWindowX = x + width * 0.6;
   tft.fillRect(rightWindowX, windowY, windowSize, windowSize, windowColor);
   tft.drawRect(rightWindowX, windowY, windowSize, windowSize, frameColor);
   tft.drawLine(rightWindowX + windowSize / 2, windowY,
-               rightWindowX + windowSize / 2, windowY + windowSize, frameColor);
+               rightWindowX + windowSize / 2, windowY + windowSize,
+               frameColor);
   tft.drawLine(rightWindowX, windowY + windowSize / 2,
-               rightWindowX + windowSize, windowY + windowSize / 2, frameColor);
+               rightWindowX + windowSize, windowY + windowSize / 2,
+               frameColor);
 
   // Camino
   int chimneyWidth = width * 0.1;
@@ -213,22 +213,22 @@ void drawScrollBar(int x, int y, int h, int posizioni) {
 
   // Freccia SU
   if (posizioni == 0 || posizioni == 1) {
-    tft.fillTriangle(x + w / 2, y + 5, x + 5, y + arrowH - 5, 
-                     x + w - 5, y + arrowH - 5, TFT_WHITE);
+    tft.fillTriangle(x + w / 2, y + 5, x + 5, y + arrowH - 5, x + w - 5,
+                     y + arrowH - 5, TFT_WHITE);
   }
 
   // Freccia GIÙ
   int yb = y + h - arrowH;
   if (posizioni == 0 || posizioni == 2) {
-    tft.fillTriangle(x + 5, yb + 5, x + w - 5, yb + 5, 
-                     x + w / 2, yb + arrowH - 5, TFT_WHITE);
+    tft.fillTriangle(x + 5, yb + 5, x + w - 5, yb + 5, x + w / 2,
+                     yb + arrowH - 5, TFT_WHITE);
   }
 
   // Binario centrale
   tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
 }
 
-void disegnaHome(){
+void disegnaHome() {
   tft.fillScreen(sfondo_page0);
   drawWiFiSymbol(400, 20);
   drawGearIcon(445, 25);
@@ -240,6 +240,63 @@ void disegnaHome(){
   tft.setTextSize(2);
   tft.setCursor(120, 300);
   tft.println("Premi per proseguire");
+}
+
+void disegnaGrigliaHome() {
+  int cellW = 160;          // 480 / 3
+  int headerH = 70;         // spazio in alto per titolo/disegni
+  int gridH = 320 - headerH;
+  int cellH = gridH / 3;    // altezza di ogni riga della griglia
+
+  drawHouse();
+
+  // Griglia 3x3 che parte dal basso, lasciando headerH pixel liberi in alto
+  for (int row = 0; row < 3; row++) {
+    for (int col = 0; col < 3; col++) {
+      int x = col * cellW;
+      // row 0 = riga più in basso, row 2 = riga più in alto
+      int y = headerH + (2 - row) * cellH;
+
+      // Disegna il bordo del rettangolo smussato
+      tft.drawRoundRect(x + 5, y + 5, cellW - 10, cellH - 10, 10, TFT_DARKGREY);
+
+      // Testo al centro del quadrato
+      tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+      tft.setTextSize(2);
+      int textX = x + 20;
+      int textY = y + cellH / 2;
+
+      if (row == 0 && col == 0) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 7");
+      } else if (row == 0 && col == 1) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 8");
+      } else if (row == 0 && col == 2) {
+        drawGearIcon(x + 80, y + 40,TFT_DARKGREY);
+        tft.setCursor(textX-10, textY+20);
+        tft.println("Impostazioni");
+      } else if (row == 1 && col == 0) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 4");
+      } else if (row == 1 && col == 1) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 5");
+      } else if (row == 1 && col == 2) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 6");
+      } else if (row == 2 && col == 0) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 1");
+      } else if (row == 2 && col == 1) {
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 2");
+      } else if (row == 2 && col == 2) {  // riga in alto, colonna destra
+        tft.setCursor(textX, textY);
+        tft.println("Pagina 3");
+      }
+    }
+  }
 }
 
 #endif

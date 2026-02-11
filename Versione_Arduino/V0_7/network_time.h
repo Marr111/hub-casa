@@ -260,7 +260,7 @@ void printEvents() {
 void printEventsTFT() {
   int y = 80;
   int x = 80;
-  tft.setTextColor(TFT_WHITE, sfondo_page2);
+  tft.setTextColor(TFT_WHITE, sfondo_pageTask);
   tft.setTextSize(2);
   tft.setCursor(x, y);
   tft.println("=== Eventi ===");
