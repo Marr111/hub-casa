@@ -3,17 +3,6 @@
 
 #include "config.h"
 
-void drawArrows() {
-  // Freccia sinistra
-  tft.fillTriangle(20, tft.height() / 2, 60, tft.height() / 2 - 30, 60,
-                   tft.height() / 2 + 30, COLOR_ARROW);
-
-  // Freccia destra
-  tft.fillTriangle(tft.width() - 20, tft.height() / 2, tft.width() - 60,
-                   tft.height() / 2 - 30, tft.width() - 60,
-                   tft.height() / 2 + 30, COLOR_ARROW);
-}
-
 void drawWiFiSymbol(int x, int y) {
   bool connected = (WiFi.status() == WL_CONNECTED);
   uint16_t color = connected ? TFT_GREEN : TFT_RED;
@@ -35,8 +24,6 @@ void drawWiFiSymbol(int x, int y) {
 
 void drawGearIcon(int x, int y, uint16_t bg) {
   uint16_t color = TFT_WHITE;
-
-  tft.fillRect(x - 20, y - 20, 40, 40, bg);
 
   // Centro
   tft.drawCircle(x, y, 5, color);
@@ -243,10 +230,10 @@ void disegnaHome() {
 }
 
 void disegnaGrigliaHome() {
-  int cellW = 160;          // 480 / 3
-  int headerH = 70;         // spazio in alto per titolo/disegni
+  int cellW = 160;   // 480 / 3
+  int headerH = 70;  // spazio in alto per titolo/disegni
   int gridH = 320 - headerH;
-  int cellH = gridH / 3;    // altezza di ogni riga della griglia
+  int cellH = gridH / 3;  // altezza di ogni riga della griglia
 
   drawHouse();
 
@@ -261,7 +248,7 @@ void disegnaGrigliaHome() {
       tft.drawRoundRect(x + 5, y + 5, cellW - 10, cellH - 10, 10, TFT_DARKGREY);
 
       // Testo al centro del quadrato
-      tft.setTextColor(TFT_WHITE, TFT_DARKGREY);
+      tft.setTextColor(TFT_WHITE, TFT_TRANSPARENT);
       tft.setTextSize(2);
       int textX = x + 20;
       int textY = y + cellH / 2;
@@ -273,8 +260,8 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX, textY);
         tft.println("Pagina 8");
       } else if (row == 0 && col == 2) {
-        drawGearIcon(x + 80, y + 40,TFT_DARKGREY);
-        tft.setCursor(textX-10, textY+20);
+        drawGearIcon(x + 80, y + 30, COLOR_CARD);
+        tft.setCursor(textX - 10, textY + 15);
         tft.println("Impostazioni");
       } else if (row == 1 && col == 0) {
         tft.setCursor(textX, textY);
@@ -296,6 +283,31 @@ void disegnaGrigliaHome() {
         tft.println("Pagina 3");
       }
     }
+  }
+}
+
+void drawGradientBackground(uint16_t startColor, uint16_t endColor) {
+  // Scomposizione del colore di partenza (RGB565)
+  uint8_t r1 = (startColor >> 11) & 0x1F;
+  uint8_t g1 = (startColor >> 5) & 0x3F;
+  uint8_t b1 = startColor & 0x1F;
+
+  // Scomposizione del colore di arrivo (RGB565)
+  uint8_t r2 = (endColor >> 11) & 0x1F;
+  uint8_t g2 = (endColor >> 5) & 0x3F;
+  uint8_t b2 = endColor & 0x1F;
+
+  for (int y = 0; y < 320; y++) {
+    // Calcolo dell'interpolazione lineare per ogni canale
+    uint8_t r = r1 + (r2 - r1) * y / 319;
+    uint8_t g = g1 + (g2 - g1) * y / 319;
+    uint8_t b = b1 + (b2 - b1) * y / 319;
+
+    // Ricomposizione nel formato RGB565
+    uint16_t color = (r << 11) | (g << 5) | b;
+
+    // Disegna una linea orizzontale di quel colore
+    tft.drawFastHLine(0, y, 480, color);
   }
 }
 

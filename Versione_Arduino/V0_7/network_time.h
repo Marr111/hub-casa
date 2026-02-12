@@ -54,8 +54,8 @@ void connessioneNTP() {
 String getDateLong() {
   if (!getLocalTime(&timeinfo)) return "N/A";
 
-  const char *daysOfWeek[] = { "domenica", "lunedi", "martedi", "mercoledi", 
-                                "giovedi", "venerdi", "sabato" };
+  const char *daysOfWeek[] = { "domenica", "lunedi", "martedi", "mercoledi",
+                               "giovedi", "venerdi", "sabato" };
   const char *months[] = { "gen", "feb", "mar", "apr", "mag", "giu",
                            "lug", "ago", "set", "ott", "nov", "dic" };
 
@@ -72,7 +72,7 @@ String getTime() {
   if (!getLocalTime(&timeinfo)) return "N/A";
 
   char buffer[9];
-  sprintf(buffer, "%02d:%02d:%02d", 
+  sprintf(buffer, "%02d:%02d:%02d",
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
   return String(buffer);
 }
@@ -93,7 +93,7 @@ String icalUnescape(String s) {
 time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly) {
   struct tm tm;
   memset(&tm, 0, sizeof(tm));
-  
+
   if (dateOnly) {
     int y = val.substring(0, 4).toInt();
     int m = val.substring(4, 6).toInt();
@@ -333,4 +333,4 @@ void printTasksTFT() {
   }
 }
 
-#endif 
+#endif

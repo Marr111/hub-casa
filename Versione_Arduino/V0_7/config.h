@@ -27,7 +27,7 @@
 #define REPEAT_CAL false
 
 // ============================================================================
-// COLORI 
+// COLORI
 // ============================================================================
 #define sfondo_page0 TFT_BLUE
 #define sfondo_pageCalendario TFT_YELLOW
@@ -40,18 +40,18 @@
 #define sfondo_pageImpostazioni TFT_DARKGREY
 
 #define COLOR_ARROW TFT_WHITE
-#define COLOR_BG        0x0841 
-#define COLOR_CARD      0x10A4 
-#define COLOR_TEXT      0xFFFF 
-#define COLOR_BLUE      0x34BF 
-#define COLOR_ORANGE    0xFB00 
-#define COLOR_PURPLE    0x921F 
-#define COLOR_GREEN     0x3666 
-#define COLOR_YELLOW    0xF600 
-#define COLOR_GRAY      0x7BEF 
-#define COLOR_RED       0xC800 // Nuovo colore per Scene
-#define COLOR_CYAN      0x07FF // Nuovo colore per Rooms
-#define COLOR_TEAL      0x0410 // Nuovo colore per Info
+#define COLOR_BG 0x0841
+#define COLOR_CARD 0x10A4
+#define COLOR_TEXT 0xFFFF
+#define COLOR_BLUE 0x34BF
+#define COLOR_ORANGE 0xFB00
+#define COLOR_PURPLE 0x921F
+#define COLOR_GREEN 0x3666
+#define COLOR_YELLOW 0xF600
+#define COLOR_GRAY 0x7BEF
+#define COLOR_RED 0xC800   // Nuovo colore per Scene
+#define COLOR_CYAN 0x07FF  // Nuovo colore per Rooms
+#define COLOR_TEAL 0x0410  // Nuovo colore per Info
 
 // ============================================================================
 // CONFIGURAZIONE RETE
@@ -143,7 +143,6 @@ extern int luminosita;
 // ============================================================================
 
 // GUI Functions
-void drawArrows();
 void drawWiFiSymbol(int x, int y);
 void drawGearIcon(int x, int y);
 void drawGearIcon(int x, int y, uint16_t bg);
@@ -151,6 +150,7 @@ void drawCircleWithDot(int x, int y, int radius);
 void drawHouse();
 void drawCaricamento(int cx, int cy, int num_giri);
 void drawScrollBar(int x, int y, int h, int posizioni);
+void drawGradientBackground(uint16_t startColor, uint16_t endColor);
 
 // Network & Time Functions
 void connessioneWiFi();
@@ -196,4 +196,4 @@ void disegnaHome();
 void waitRelease();
 void switchPage(int p);
 
-#endif // CONFIG_H
+#endif  // CONFIG_H

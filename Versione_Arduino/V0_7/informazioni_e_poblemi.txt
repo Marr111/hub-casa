@@ -7,14 +7,27 @@
 //|                                               |
 //(480,0) ------------------------------------- (0,0)
 
-  problemi importanti
+attenzione consigli tra parentesi generati con ai 
 
--aggiungere funzionalità alle pagine 
+=========================================
+          PROBLEMI IMPORTANTI
+=========================================
+- Ritorno alla home con la casetta: x giuste ma y opposte
+- Nella pagina impostazioni ritorno alla home strano (Controlla che nel ciclo while della pagina impostazioni ci sia il comando "break;" subito dopo aver impostato page=0)
+- Visto che nella schermata griglia c'è lo sfondo sfumato le parole sono brutte (Imposta il colore del testo con sfondo trasparente usando "tft.setTextColor(COLORE, TFT_TRANSPARENT)" )
 
-  problemi mediamente importanti
 
--
+=========================================
+       PROBLEMI MEDIAMENTE IMPORTANTI
+=========================================
+- Rinominare le pagine con la funzione che hanno
+- Mettere nome e icona per ogni funzione nella pagina griglia
+- Nelle impostazioni la calibrazione touch non torna dove deve tornare
+- Far capire quali sono le pagine "work in progress"
 
-  cose da aggiungere
 
--provare a far funzionare le immagini --> sostituiredisegnini con array di ingranaggio/wi-fi/ecc.. con immagini
+=========================================
+       FUNZIONALITÀ A LUNGO TERMINE
+=========================================
+- Comando lampadina
+- Miglioramento caricamento iniziale (barra di caricamento + testo azioni)

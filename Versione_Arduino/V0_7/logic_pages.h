@@ -16,47 +16,49 @@ void waitRelease() {
 }
 
 void pageprincipale() {
-  tft.fillScreen(COLOR_CARD);
-    dbgLog("logic_pages.h:pageprincipale", "enter", page, 0, 0, 0);
+  // sfondo gradiente: da Blu scuro/Nero petrolio al Blu acciaio/Grigio azzurro
+  drawGradientBackground(0x1926, 0x4B92);
+  dbgLog("logic_pages.h:pageprincipale", "enter", page, 0, 0, 0);
 
-    // Disegna la griglia da cui scegliere le pagine
-    disegnaGrigliaHome();
+  // Disegna la griglia da cui scegliere le pagine
+  disegnaGrigliaHome();
 
-    bool running = true;
-    while (running) {
+  bool running = true;
+  while (running) {
     uint16_t x, y;
     if (!tft.getTouch(&x, &y)) {
       continue;
     }
     dbgLog("logic_pages.h:pageprincipale", "touch", x, y, 0, 0);
 
-        // Tasto HOME (angolo in alto a sinistra)
-        if (x < 60 && y < 60) {
-            page = 0;
-            dbgLog("logic_pages.h:pageprincipale", "go.home", x, y, page, 0);
-            disegnaHome();
-            break;
-        }
+    // Tasto HOME (angolo in alto a sinistra)
+    if (x < 60 && y > 236) {
+      page = 0;
+      dbgLog("logic_pages.h:pageprincipale", "go.home", x, y, page, 0);
+      disegnaHome();
+      break;
+    }
 
     int col = x / 160;  // 480 / 3 = 160
-
-    // stessi parametri usati in disegnaGrigliaHome
-    int headerH = 70;
-    int gridH = 320 - headerH;
-    int cellH = gridH / 3;
-
-    // Se il tocco è sopra la griglia o sotto, ignora
-    if (y < headerH || y >= headerH + gridH || col < 0 || col > 2) {
-      dbgLog("logic_pages.h:pageprincipale", "grid.outside", y, col, 0, 0);
+    // Controllo colonne valido
+    if (col < 0 || col > 2) {
       continue;
     }
 
-    // Calcola la riga partendo dal basso: riga 0 = basso, 2 = alto
-    int rowFromTop = (y - headerH) / cellH;  // 0..2 dall'alto
-    int row = 2 - rowFromTop;                // 0..2 dal basso
+    int row = 0;
+
+    if (y < 70) {
+      dbgLog("logic_pages.h:pageprincipale", "grid.header", y, col, 0, 0);
+      row = 2; // parte sotto dello schermo
+    } else if (y < 153) {
+      row = 1;
+    } else if (y < 236) {
+      row = 0;  
+    } else {// parte sopra dello schermo
+      continue;
+    }
 
     dbgLog("logic_pages.h:pageprincipale", "grid", row, col, 0, 0);
-
     // Indice 1..9: 1 in basso a sinistra, 9 in alto a destra
     int idx = row * 3 + col + 1;
 
@@ -128,7 +130,6 @@ void pageCalendario() {
   tft.setCursor(130, 30);
   tft.setTextSize(4);
   tft.println("Pagina 1");
-  //drawArrows();
   drawHouse();
 
   while (page == 1) {
@@ -137,7 +138,7 @@ void pageCalendario() {
     printEventsTFT();
     delay(10);
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -151,13 +152,12 @@ void pageTask() {
   tft.setCursor(130, 30);
   tft.setTextSize(4);
   tft.println("Pagina 2");
-  //drawArrows();
   drawHouse();
 
   while (page == 2) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -173,13 +173,12 @@ void page3() {
   tft.setCursor(130, 30);
   tft.setTextSize(4);
   tft.println("Pagina 3");
-  //drawArrows();
   drawHouse();
 
   while (page == 3) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -194,13 +193,12 @@ void page4() {
   tft.setCursor(130, 30);
   tft.setTextSize(3);
   tft.println("LAMPADINA RGB BLUETOOTH");
-  //drawArrows();
   drawHouse();
 
   while (page == 4) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -215,13 +213,12 @@ void page5() {
   tft.setCursor(130, 30);
   tft.setTextSize(4);
   tft.println("Pagina 5");
-  //drawArrows();
   drawHouse();
 
   while (page == 5) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -236,13 +233,12 @@ void page6() {
   tft.setTextColor(TFT_WHITE, sfondo_page6);
   tft.setTextSize(4);
   tft.println("Pagina 6");
-  //drawArrows();
   drawHouse();
 
   while (page == 6) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -257,13 +253,12 @@ void page7() {
   tft.setTextColor(TFT_WHITE, sfondo_page7);
   tft.setTextSize(4);
   tft.println("Pagina 7");
-  //drawArrows();
   drawHouse();
 
   while (page == 7) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -278,13 +273,12 @@ void page8() {
   tft.setTextColor(TFT_WHITE, sfondo_page7);
   tft.setTextSize(4);
   tft.println("Pagina 8");
-  //drawArrows();
   drawHouse();
 
   while (page == 8) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-    if (x <40 && y <  300) {  // Area casetta
+      if (x < 40 && y > 300) {  // Area casetta
         break;
       }
     }
@@ -320,7 +314,7 @@ void pageImpostazioni() {
     uint16_t tx, ty;
     if (tft.getTouch(&tx, &ty)) {
       // Se premi la casetta (coordinate 0-60)
-      if (tx < 60 && ty < 60) {
+      if (tx > 460 && ty < 40) {  // Area casetta
         Serial.println("Uscita da Impostazioni");
         page = 0;
         esci_dal_loop = 0;
@@ -328,20 +322,20 @@ void pageImpostazioni() {
     }
     delay(10);
   }
-    waitRelease();
+  waitRelease();
 
-    // Se siamo usciti impostando page = 0, ridisegna la home
-    if (page == 0) {
-        disegnaHome();
-    }
+  // Se siamo usciti impostando page = 0, ridisegna la home
+  if (page == 0) {
+    disegnaHome();
+  }
 }
 
 void checkInactivity() {
   if ((millis() - lastActivity > INACTIVITY_TIMEOUT) && page != 0) {
     Serial.println("⏳ Timeout!");
-    //disegnaHome();
-    //page = 0;                 // Il loop principale si accorgerà del cambio e disegnerà la
-                              // home
+    disegnaHome();
+    page = 0;                 // Il loop principale si accorgerà del cambio e disegnerà la
+    // home
     lastActivity = millis();  // Resetta per evitare loop continui
   }
 }
