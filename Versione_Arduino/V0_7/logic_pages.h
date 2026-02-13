@@ -49,6 +49,8 @@ void pageprincipale() {
   // Disegna la griglia da cui scegliere le pagine
   disegnaGrigliaHome();
 
+  delay(500);
+  
   bool running = true;
   while (running) {
     uint16_t x, y;
@@ -59,6 +61,7 @@ void pageprincipale() {
 
     // Tasto HOME (angolo in alto a sinistra)
     if (x < 60 && y > 236) {
+      waitRelease();
       page = 0;
       dbgLog("logic_pages.h:pageprincipale", "go.home", x, y, page, 0);
       disegnaHome();
@@ -87,6 +90,8 @@ void pageprincipale() {
     dbgLog("logic_pages.h:pageprincipale", "grid", row, col, 0, 0);
     // Indice 1..9: 1 in basso a sinistra, 9 in alto a destra
     int idx = row * 3 + col + 1;
+
+    waitRelease();
 
     switch (idx) {
       case 1:
@@ -138,6 +143,7 @@ void pageprincipale() {
         running = false;
         break;
       case 9:
+        page = 9;
         dbgLog("logic_pages.h:pageprincipale", "go.settings", row, col, page, 0);
         pageImpostazioni();
         running = false;
@@ -330,6 +336,8 @@ void pageImpostazioni() {
 
   esci_dal_loop = 1;
   while (esci_dal_loop == 1) {
+    if (page == 0) break;
+
     if (stato_scroll_bar == 1)
       stato_scroll_bar1();
     else if (stato_scroll_bar == 2)
@@ -396,7 +404,9 @@ void stato_scroll_bar1() {
   while (stato_scroll_bar == 1) {
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     TouchPoint tp = touch_coordinate();
+    
     checkInactivity();
+    if (page == 0) return;
 
     if (tp.touched) {
       // WiFi
@@ -422,7 +432,7 @@ void stato_scroll_bar1() {
         drawCaricamento(415, 190, 2);
         touch_calibrate();
         stato_scroll_bar1();
-      } else if (tp.x > 60 && tp.y < 60) {  // ritorno alla home
+      } else if (tp.x < 60 && tp.y < 60) {  // ritorno alla home
         page = 0;
         esci_dal_loop = 0;
         return;
@@ -454,10 +464,12 @@ void stato_scroll_bar2() {
 
   while (1) {
     checkInactivity();
+    if (page == 0) return;
+
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     if (stato_scroll_bar != 2) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
+      Serial.println("Cambio pagina scroll 2->altrove");
+      return;
     }
   }
 }
@@ -484,10 +496,12 @@ void stato_scroll_bar3() {
 
   while (1) {
     checkInactivity();
+    if (page == 0) return;
+
     stato_scroll_bar = touchMenu(stato_scroll_bar);
     if (stato_scroll_bar != 3) {
-      Serial.println("ho braikato");
-      pageImpostazioni();
+      Serial.println("Cambio pagina scroll 3->altrove");
+      return;
     }
   }
 }
