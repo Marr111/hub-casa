@@ -82,27 +82,34 @@ void setup() {
   pinMode(TOUCH_CS, OUTPUT);
   digitalWrite(TOUCH_CS, HIGH);
 
-  // Messaggio sul display
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextSize(4);
-  tft.setCursor(20, 100);
-  tft.println("Stiamo preparando");
-  tft.println(" il tuo dispositivo");
+  // --- FASE 1: Avvio File System ---
+  updateLoadingScreen(10, "Inizializzazione File System...");
+  delay(200);
 
-  // Connessioni
+  // --- FASE 2: Connessione WiFi ---
+  updateLoadingScreen(30, "Connessione al WiFi...");
   connessioneWiFi();
   connessioneNTP();
-  // touch_calibrate();
+  delay(200);
 
-  // Imposta timezone (Europe/Rome)
+  // --- FASE 3: Sincronizzazione Orario ---
+  updateLoadingScreen(50, "Sincronizzazione Orario NTP...");
   setenv("TZ", "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00", 1);
   tzset();
+  delay(200);
 
+  // --- FASE 4:Lettura Calendario ---
+  updateLoadingScreen(80, "Lettura Calendario...");
   // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
   //fetchAndParseICal();
   //printEvents();
+  delay(200);
 
+  // --- FASE 5: Completamento ---
+  updateLoadingScreen(100, "Avvio completato!");
   Serial.println("🚀 Setup completato!");
+  delay(1000);  // Lascia leggere all'utente "Completato"
+
   page = 0;
   disegnaHome();
   dbgLog("v0_7.ino:setup", "home.drawn", page, 0, 0, 0);
@@ -133,7 +140,7 @@ void loop() {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     dbgLog("v0_7.ino:loop", "touch", x, y, page, 0);
-    if (x > 400 && y < 300) {  // Area Ingranaggio
+    if (x > 400 && y > 300) {  // Area Ingranaggio
       Serial.println("Apertura Impostazioni");
       delay(200);  // Debounce
       dbgLog("v0_7.ino:loop", "go.settings", x, y, page, 0);

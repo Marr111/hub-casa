@@ -248,7 +248,7 @@ void disegnaGrigliaHome() {
       tft.drawRoundRect(x + 5, y + 5, cellW - 10, cellH - 10, 10, TFT_DARKGREY);
 
       // Testo al centro del quadrato
-      tft.setTextColor(TFT_WHITE, TFT_TRANSPARENT);
+      tft.setTextColor(TFT_WHITE);
       tft.setTextSize(2);
       int textX = x + 20;
       int textY = y + cellH / 2;

@@ -151,6 +151,7 @@ void drawHouse();
 void drawCaricamento(int cx, int cy, int num_giri);
 void drawScrollBar(int x, int y, int h, int posizioni);
 void drawGradientBackground(uint16_t startColor, uint16_t endColor);
+void disegnaGrigliaHome();
 
 // Network & Time Functions
 void connessioneWiFi();
@@ -175,7 +176,7 @@ void test_touch();
 extern int page;
 extern int lastPage;
 
-void disegnaGrigliaHome();
+void updateLoadingScreen(int percent, const char* message);
 void pageprincipale();
 void pageCalendario();
 void pageTask();

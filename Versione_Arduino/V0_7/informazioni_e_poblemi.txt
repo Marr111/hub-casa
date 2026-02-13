@@ -14,7 +14,6 @@ attenzione consigli tra parentesi generati con ai
 =========================================
 - Ritorno alla home con la casetta: x giuste ma y opposte
 - Nella pagina impostazioni ritorno alla home strano (Controlla che nel ciclo while della pagina impostazioni ci sia il comando "break;" subito dopo aver impostato page=0)
-- Visto che nella schermata griglia c'è lo sfondo sfumato le parole sono brutte (Imposta il colore del testo con sfondo trasparente usando "tft.setTextColor(COLORE, TFT_TRANSPARENT)" )
 
 
 =========================================
@@ -30,4 +29,4 @@ attenzione consigli tra parentesi generati con ai
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
 - Comando lampadina
-- Miglioramento caricamento iniziale (barra di caricamento + testo azioni)
+-riempire le pagine

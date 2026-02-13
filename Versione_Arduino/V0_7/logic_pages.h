@@ -7,6 +7,32 @@
 // GESTIONE PAGINE E NAVIGAZIONE
 // ============================================================================
 
+void updateLoadingScreen(int percent, const char* message) {
+  // Parametri grafici
+  int barX = 40;
+  int barY = 150; // Al centro vert. (su 320px)
+  int barW = 400; // Larghezza barra (su 480px)
+  int barH = 20;
+  
+  // 1. Disegna il contorno della barra (solo la prima volta o sempre)
+  tft.drawRect(barX, barY, barW, barH, TFT_WHITE);
+
+  // 2. Calcola quanto riempire
+  int fillW = map(percent, 0, 100, 0, barW - 4); // -4 per il bordo interno
+  
+  // 3. Riempi la barra (effetto progresso)
+  // Lasciamo 2px di padding interno
+  tft.fillRect(barX + 2, barY + 2, fillW, barH - 4, 0x07E0); // Verde brillante o altro colore
+  
+  // 4. Gestione del Testo (Messaggio sotto la barra)
+  // Pulisci SOLO l'area del testo per evitare sovrapposizioni
+  tft.fillRect(0, barY + 30, 480, 30, 0x0000); // Usa lo stesso colore di sfondo del gradiente in quel punto!
+  
+  tft.setTextDatum(MC_DATUM); // Allinea al centro
+  tft.setTextColor(TFT_WHITE); // Niente sfondo, perché abbiamo pulito l'area col fillRect sopra
+  tft.drawString(message, 240, barY + 45); // Scrive al centro (480/2 = 240)
+}
+
 void waitRelease() {
   uint16_t x, y;
   while (tft.getTouch(&x, &y)) {
