@@ -397,7 +397,8 @@ void stato_scroll_bar1() {
   tft.println("3 Calib touch");
   drawCircleWithDot(415, 190, 15);
   tft.setCursor(30, 230);
-  tft.println("4");
+  tft.println("4 Aggiornamento codice");
+  drawCircleWithDot(415, 190, 15);
   tft.setCursor(30, 280);
   tft.println("5");
 
@@ -431,6 +432,18 @@ void stato_scroll_bar1() {
         Serial.println("calibrazione touch");
         drawCaricamento(415, 190, 2);
         touch_calibrate();
+        stato_scroll_bar1();
+      }
+      //aggiornamento codice
+      else if (tp.x > 410 && tp.x < 430 && tp.y > 50 && tp.y < 80){
+        Serial.println("cerca nuovo codice");
+        drawCaricamento(415, 190, 2);
+        if (lastVersionCheck == 0 || (millis() - lastVersionCheck > VERSION_CHECK_INTERVAL)) {//nuovo codice
+          checkForUpdate();
+          if (updateAvailable) {
+            performOTAUpdate(); // Rimuovi questa riga se vuoi aggiornamento manuale
+          }
+        }
         stato_scroll_bar1();
       } else if (tp.x < 60 && tp.y < 60) {  // ritorno alla home
         page = 0;

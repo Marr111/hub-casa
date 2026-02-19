@@ -12,6 +12,8 @@
 #include <time.h>
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
+#include <ArduinoJson.h>
+#include <Update.h>
 
 // ============================================================================
 // DEFINIZIONI DISPLAY
@@ -72,6 +74,18 @@
 #define MAX_TASKS 10
 #define TASKS_PER_PAGE 10
 #define INACTIVITY_TIMEOUT 30000  // 30 secondi in millisecondi
+
+// ============================================================================
+// SINCRONIZZAZIONE CODICE
+// ============================================================================
+const char* FIRMWARE_VERSION = "1.0"; // La tua versione attuale
+const char* VERSION_CHECK_URL = "https://raw.githubusercontent.com/TUO_USERNAME/TUA_REPO/main/version.json";
+
+String availableVersion = "";
+String downloadURL = "";
+bool updateAvailable = false;
+unsigned long lastVersionCheck = 0;
+const unsigned long VERSION_CHECK_INTERVAL = 86400000; // 24 ore
 
 // ============================================================================
 // STRUTTURE DATI
@@ -196,5 +210,10 @@ int touchMenu(int stato_scroll_bar);
 void disegnaHome();
 void waitRelease();
 void switchPage(int p);
+
+//sincronizzazione codice
+bool isNewerVersion(String currentVer, String newVer);
+void checkForUpdate() ;
+void performOTAUpdate();
 
 #endif  // CONFIG_H

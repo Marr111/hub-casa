@@ -122,7 +122,7 @@ void loop() {
   ora = getTime();
   static String ultimaOra = "";
 
-  if (ora != ultimaOra) {
+  if (ora != ultimaOra) {//ora
     ultimaOra = ora;
     dataLunga = getDateLong();
 
@@ -137,7 +137,7 @@ void loop() {
     tft.println(dataLunga);
   }
 
-  uint16_t x, y;
+  uint16_t x, y;//touch
   if (tft.getTouch(&x, &y)) {
     dbgLog("v0_7.ino:loop", "touch", x, y, page, 0);
     if (x > 400 && y > 300) {  // Area Ingranaggio
