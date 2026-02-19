@@ -7,6 +7,13 @@
 //|                                               |
 //(480,0) ------------------------------------- (0,0)
 
+come compilare il codice: 
+1)dall ide arduino da sketch premere export compiled binary
+2)andare nella cartella dove ce stata lesportazione del binario e zippare il file v0.7.ino.bin
+3)da terminale nella cartella: git add.
+4)git commit -m "descrizione modifiche"
+5)git push origin main
+
 attenzione consigli tra parentesi generati con ai 
 
 =========================================
