@@ -48,7 +48,10 @@ void pageprincipale() {
 
   // Disegna la griglia da cui scegliere le pagine
   disegnaGrigliaHome();
-
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(110, 30);
+  tft.setTextSize(3);
+  tft.println("Scegli una pagina");
   delay(500);
   
   bool running = true;
@@ -206,12 +209,10 @@ void pageTask() {
 }
 
 void page3() {
-  tft.fillScreen(sfondo_page3);
-  tft.setTextColor(TFT_WHITE, sfondo_page3);
-  tft.setCursor(130, 30);
-  tft.setTextSize(4);
-  tft.println("Pagina 3");
-  drawHouse();
+  page = 3;
+  lastActivity = millis();  // Reset timer: la fetch HTTP può durare 10-20s
+  drawWeatherPage();  // Disegna sfondo + titolo + 4 colonne meteo
+  lastActivity = millis();  // Reset di nuovo dopo la fetch, prima del loop
 
   while (page == 3) {
     uint16_t x, y;
@@ -227,6 +228,7 @@ void page3() {
     delay(10);
   }
 }
+
 
 void page4() {
   tft.fillScreen(sfondo_page4);

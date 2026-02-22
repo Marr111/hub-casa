@@ -215,6 +215,81 @@ void drawScrollBar(int x, int y, int h, int posizioni) {
   tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
 }
 
+void drawCalendarIcon(int cx, int cy, uint16_t color) {
+  int w = 36, h = 30;
+
+  // Corpo principale
+  tft.drawRoundRect(cx, cy, w, h, 2, color);
+
+  // Intestazione colorata (top bar)
+  tft.fillRect(cx + 1, cy + 1, w - 2, 8, TFT_RED);
+
+  // Spirali (cerchietti in cima)
+  tft.fillCircle(cx + 9,  cy - 2, 3, color);
+  tft.fillCircle(cx + 27, cy - 2, 3, color);
+  tft.fillRect(cx + 8,  cy - 1, 3, 5, color);
+  tft.fillRect(cx + 26, cy - 1, 3, 5, color);
+
+  // Righe orizzontali griglia
+  for (int r = 0; r < 3; r++) {
+    tft.drawFastHLine(cx + 2, cy + 10 + r * 6, w - 4, color);
+  }
+
+  // Colonne verticali griglia
+  for (int c = 1; c <= 2; c++) {
+    tft.drawFastVLine(cx + c * (w / 3), cy + 10, h - 12, color);
+  }
+
+  // Pallino rosso su una cella (giorno evidenziato)
+  tft.fillCircle(cx + 27, cy + 22, 4, TFT_RED);
+}
+
+void drawTaskIcon(int cx, int cy, uint16_t color) {
+  int w = 30, h = 36;
+
+  // Foglio
+  tft.drawRoundRect(cx, cy, w, h, 2, color);
+
+  // Intestazione
+  tft.fillRect(cx + 1, cy + 1, w - 2, 6, TFT_CYAN);
+
+  // 3 righe con checkbox
+  for (int i = 0; i < 3; i++) {
+    int ry = cy + 11 + i * 8;
+    // Quadratino checkbox
+    tft.drawRect(cx + 4, ry, 6, 6, color);
+    // Segno di spunta nei primi due
+    if (i < 2) {
+      tft.drawLine(cx + 5, ry + 3, cx + 7, ry + 5, TFT_GREEN);
+      tft.drawLine(cx + 7, ry + 5, cx + 10, ry + 2, TFT_GREEN);
+    }
+    // Linea testo
+    tft.drawFastHLine(cx + 13, ry + 3, w - 16, color);
+  }
+}
+
+void drawWeatherIcon(int cx, int cy) {
+  // Sole (cerchio giallo con raggi)
+  int sx = cx + 13, sy = cy + 10;
+  tft.fillCircle(sx, sy, 7, TFT_YELLOW);
+  // 8 raggi
+  for (int i = 0; i < 8; i++) {
+    float a = i * 45.0 * PI / 180.0;
+    int x1 = sx + 9  * cos(a);
+    int y1 = sy + 9  * sin(a);
+    int x2 = sx + 13 * cos(a);
+    int y2 = sy + 13 * sin(a);
+    tft.drawLine(x1, y1, x2, y2, TFT_YELLOW);
+  }
+
+  // Nuvola (tre cerchi sovrapposti + rettangolo base)
+  int nx = cx + 6, ny = cy + 18;
+  tft.fillCircle(nx + 5,  ny,     7, TFT_WHITE);
+  tft.fillCircle(nx + 14, ny - 3, 9, TFT_WHITE);
+  tft.fillCircle(nx + 23, ny,     7, TFT_WHITE);
+  tft.fillRect(nx, ny, 24, 8, TFT_WHITE);
+}
+
 void disegnaHome() {
   tft.fillScreen(sfondo_page0);
   drawWiFiSymbol(400, 20);
@@ -273,14 +348,17 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX, textY);
         tft.println("Pagina 6");
       } else if (row == 2 && col == 0) {
-        tft.setCursor(textX, textY);
-        tft.println("Pagina 1");
+        drawCalendarIcon(x + 62, y + 20, TFT_WHITE);
+        tft.setCursor(textX , textY + 18);
+        tft.println("Calendario");
       } else if (row == 2 && col == 1) {
-        tft.setCursor(textX, textY);
-        tft.println("Pagina 2");
+        drawTaskIcon(x + 62, y + 20, TFT_WHITE);
+        tft.setCursor(textX + 35, textY + 18);
+        tft.println("Task");
       } else if (row == 2 && col == 2) {  // riga in alto, colonna destra
-        tft.setCursor(textX, textY);
-        tft.println("Pagina 3");
+        drawWeatherIcon(x + 60, y + 25);
+        tft.setCursor(textX + 30, textY + 15);
+        tft.println("Meteo");
       }
     }
   }

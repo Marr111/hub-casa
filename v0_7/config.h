@@ -180,6 +180,7 @@ void processLine(String &line, bool &inEvent, Event &curr);
 void printEvents();
 void printEventsTFT();
 void printTasksTFT();
+void drawWeatherPage();
 
 // Touch Functions
 TouchPoint touch_coordinate();
