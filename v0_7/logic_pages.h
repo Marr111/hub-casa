@@ -170,8 +170,11 @@ void pageCalendario() {
     printEventsTFT();
     delay(10);
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
   }
@@ -189,8 +192,11 @@ void pageTask() {
   while (page == 2) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -210,8 +216,11 @@ void page3() {
   while (page == 3) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -230,8 +239,11 @@ void page4() {
   while (page == 4) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -250,8 +262,11 @@ void page5() {
   while (page == 5) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -270,8 +285,11 @@ void page6() {
   while (page == 6) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -290,8 +308,11 @@ void page7() {
   while (page == 7) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -310,8 +331,11 @@ void page8() {
   while (page == 8) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
-      if (x < 40 && y > 300) {  // Area casetta
-        break;
+      if (x < 60 && y > 260) {  // Area casetta
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
       }
     }
     checkInactivity();
@@ -347,8 +371,8 @@ void pageImpostazioni() {
 
     uint16_t tx, ty;
     if (tft.getTouch(&tx, &ty)) {
-      // Se premi la casetta (coordinate 0-60)
-      if (tx > 460 && ty < 40) {  // Area casetta
+      // Se premi la casetta (alto-sinistra: touch X piccolo, touch Y grande per Y invertito)
+      if (tx < 60 && ty > 260) {  // Area casetta
         Serial.println("Uscita da Impostazioni");
         page = 0;
         esci_dal_loop = 0;
@@ -445,7 +469,7 @@ void stato_scroll_bar1() {
           }
         }
         stato_scroll_bar1();
-      } else if (tp.x < 60 && tp.y < 60) {  // ritorno alla home
+      } else if (tp.x < 60 && tp.y > 260) {  // ritorno alla home (touch Y invertito)
         page = 0;
         esci_dal_loop = 0;
         return;
