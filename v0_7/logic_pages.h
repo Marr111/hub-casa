@@ -397,8 +397,8 @@ void stato_scroll_bar1() {
   tft.println("3 Calib touch");
   drawCircleWithDot(415, 190, 15);
   tft.setCursor(30, 230);
-  tft.println("4 Aggiornamento codice");
-  drawCircleWithDot(415, 190, 15);
+  tft.println("4 Agg. codice");
+  drawCircleWithDot(415, 240, 15);
   tft.setCursor(30, 280);
   tft.println("5");
 
@@ -435,9 +435,9 @@ void stato_scroll_bar1() {
         stato_scroll_bar1();
       }
       //aggiornamento codice
-      else if (tp.x > 410 && tp.x < 430 && tp.y > 50 && tp.y < 80){
+      else if (tp.x > 410 && tp.x < 430 && tp.y > 50 && tp.y < 100){
         Serial.println("cerca nuovo codice");
-        drawCaricamento(415, 190, 2);
+        drawCaricamento(415, 240, 2);
         if (lastVersionCheck == 0 || (millis() - lastVersionCheck > VERSION_CHECK_INTERVAL)) {//nuovo codice
           checkForUpdate();
           if (updateAvailable) {

@@ -8,7 +8,7 @@ struct tm timeinfo;
 Event events[MAX_EVENTS];
 Task tasks[MAX_TASKS];
 
-int eventsCount = 0;
+int eventsCount = 0; 
 int tasksCount = 0;
 int page = 0;
 int lastPage = -1;
@@ -140,9 +140,10 @@ void loop() {
   uint16_t x, y;//touch
   if (tft.getTouch(&x, &y)) {
     dbgLog("v0_7.ino:loop", "touch", x, y, page, 0);
-    if (x > 400 && y > 300) {  // Area Ingranaggio
+    if (x > 400 && y > 260) {  // Area Ingranaggio (touch Y invertito: y alto = display top)
       Serial.println("Apertura Impostazioni");
       delay(200);  // Debounce
+      page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare, altrimenti la guard if(page==0) esce subito
       dbgLog("v0_7.ino:loop", "go.settings", x, y, page, 0);
       pageImpostazioni();
     } else {
