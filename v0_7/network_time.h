@@ -635,7 +635,6 @@ void drawWeatherPage() {
     // Icona meteo
     drawWeatherTFTIcon(cx, baseY + 65, days[i].weatherCode);
 
-    // Condizione testuale
     tft.setTextSize(1);
     tft.setTextColor(TFT_LIGHTGREY);
     const char *lbl = weatherCodeToLabel(days[i].weatherCode);
