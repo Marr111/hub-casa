@@ -19,15 +19,11 @@ attenzione consigli tra parentesi generati con ai
 =========================================
           PROBLEMI IMPORTANTI
 =========================================
-- Ritorno alla home con la casetta: x giuste ma y opposte
-- Nella pagina impostazioni ritorno alla home strano (Controlla che nel ciclo while della pagina impostazioni ci sia il comando "break;" subito dopo aver impostato page=0)
 
 
 =========================================
        PROBLEMI MEDIAMENTE IMPORTANTI
 =========================================
-- Rinominare le pagine con la funzione che hanno
-- Mettere nome e icona per ogni funzione nella pagina griglia
 - Nelle impostazioni la calibrazione touch non torna dove deve tornare
 - Far capire quali sono le pagine "work in progress"
 
@@ -36,4 +32,4 @@ attenzione consigli tra parentesi generati con ai
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
 - Comando lampadina
--riempire le pagine
+- Aggiungere nuove pagine 
