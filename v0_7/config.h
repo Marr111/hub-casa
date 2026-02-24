@@ -14,6 +14,8 @@
 #include <WiFiClientSecure.h>
 #include <ArduinoJson.h>
 #include <Update.h>
+#include <OneWire.h>
+#include <DallasTemperature.h>
 
 // ============================================================================
 // DEFINIZIONI DISPLAY
@@ -21,6 +23,11 @@
 #define ST7796_DRIVER
 #define TFT_WIDTH 320
 #define TFT_HEIGHT 480
+
+// ============================================================================
+// SENSORE KY-001 (DS18B20)
+// ============================================================================
+#define ONE_WIRE_BUS 4   // GPIO a cui è collegato il data del KY-001
 
 // ============================================================================
 // CONFIGURAZIONE TOUCH
@@ -145,6 +152,11 @@ extern int stato_scroll_bar;
 extern int esci_dal_loop;
 extern unsigned long lastActivity;
 
+// Sensore KY-001 (DS18B20)
+extern float roomTemp;
+extern float roomHum;
+extern DallasTemperature sensors;
+
 // LED RGB (per funzionalità future)
 extern int led_r;
 extern int led_g;
@@ -161,7 +173,7 @@ void drawWiFiSymbol(int x, int y);
 void drawGearIcon(int x, int y);
 void drawGearIcon(int x, int y, uint16_t bg);
 void drawCircleWithDot(int x, int y, int radius);
-void drawHouse();
+void drawHouse(int x = 20, int y = 20);
 void drawCaricamento(int cx, int cy, int num_giri);
 void drawScrollBar(int x, int y, int h, int posizioni);
 void drawGradientBackground(uint16_t startColor, uint16_t endColor);
@@ -181,6 +193,7 @@ void printEvents();
 void printEventsTFT();
 void printTasksTFT();
 void drawWeatherPage();
+void readSensor();
 
 // Touch Functions
 TouchPoint touch_coordinate();

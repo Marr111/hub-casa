@@ -435,6 +435,8 @@ struct WeatherDay {
   int tempMax;   // °C arrotondato
   int tempMin;
   int weatherCode;  // WMO weather code
+  int precProb;     // % probabilità precip.
+  int humidity;     // % umidità max
 };
 
 // Restituisce una stringa-etichetta corta basata sul WMO weather code
@@ -515,7 +517,7 @@ bool fetchWeather(WeatherDay days[4]) {
   // HTTP plain: Open-Meteo supporta HTTP e non causa problemi di memoria SSL
   http.begin("http://api.open-meteo.com/v1/forecast"
              "?latitude=44.9978&longitude=7.6881"
-             "&daily=temperature_2m_max,temperature_2m_min,weather_code"
+             "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,relative_humidity_2m_max"
              "&timezone=Europe%2FRome&forecast_days=4");
   http.setTimeout(15000);
   // getString() decomprime automaticamente gzip (getStream() no)
@@ -547,6 +549,8 @@ bool fetchWeather(WeatherDay days[4]) {
   JsonArray tMax = doc["daily"]["temperature_2m_max"];
   JsonArray tMin = doc["daily"]["temperature_2m_min"];
   JsonArray codes = doc["daily"]["weather_code"];  // campo aggiornato API v2
+  JsonArray precs = doc["daily"]["precipitation_probability_max"];
+  JsonArray hums  = doc["daily"]["relative_humidity_2m_max"];
   JsonArray dates = doc["daily"]["time"];
 
   // Nomi giorni brevi in italiano
@@ -556,6 +560,8 @@ bool fetchWeather(WeatherDay days[4]) {
     days[i].tempMax = (int)round((float)tMax[i]);
     days[i].tempMin = (int)round((float)tMin[i]);
     days[i].weatherCode = (int)codes[i];
+    days[i].precProb = (int)precs[i];
+    days[i].humidity = (int)hums[i];
 
     if (i == 0) {
       days[i].label = "Oggi";
@@ -574,8 +580,26 @@ bool fetchWeather(WeatherDay days[4]) {
   return true;
 }
 
-// Disegna la schermata meteo completa (4 colonne)
+// Legge dati aggiornati dal sensore KY-001 (DS18B20)
+void readSensor() {
+  Serial.print("[DS18B20] Lettura... ");
+  sensors.requestTemperatures(); 
+  float t = sensors.getTempCByIndex(0);
+  
+  if (t == DEVICE_DISCONNECTED_C) {
+    Serial.println("Errore (controlla i cavi o il pin!)");
+  } else {
+    Serial.printf("Temp: %.1f C\n", t);
+    roomTemp = t;
+    roomHum = 0.0f; // KY-001 non misura l'umidità
+  }
+}
+
+// Disegna la schermata meteo completa (Oggi orizzontale, prossimi 3 in verticale)
 void drawWeatherPage() {
+  // 1. Legge il sensore prima di disegnare
+  readSensor();
+
   // Sfondo sfumato blu notte
   for (int y = 0; y < 320; y++) {
     uint8_t r = map(y, 0, 319, 0, 2);
@@ -584,17 +608,35 @@ void drawWeatherPage() {
     tft.drawFastHLine(0, y, 480, tft.color565(r * 8, g * 8, b * 8));
   }
 
-  // Titolo
+  // Casetta per tornare alla home
+  drawHouse(10, 10);
+
+  // Titolo della pagina
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(3);
-  tft.setCursor(200, 20);
+  tft.setCursor(60, 10);
   tft.println("METEO");
 
-  // Casetta per tornare alla home
-  drawHouse();
+  // Riquadro dati KY-015 (Stanza) in linea
+  tft.setTextColor(TFT_WHITE);
+  tft.setTextSize(2);
+  tft.setCursor(200, 16);
+  tft.print("Stanza: ");
+  tft.setTextColor(TFT_YELLOW);
+  if (roomTemp == 0.0f && roomHum == 0.0f) {
+    tft.print("-- c  ");
+  } else {
+    tft.print((int)round(roomTemp)); tft.print(" c  ");
+  }
+  tft.setTextColor(TFT_CYAN);
+  if (roomTemp == 0.0f && roomHum == 0.0f) {
+    tft.print("--%");
+  } else {
+    tft.print("--%"); // KY-001 non misura l'umidità
+  }
 
   // Linea separatrice
-  tft.drawFastHLine(0, 55, 480, TFT_LIGHTGREY);
+  tft.drawFastHLine(0, 42, 480, TFT_LIGHTGREY);
 
   // Scarica dati
   WeatherDay days[4];
@@ -615,63 +657,92 @@ void drawWeatherPage() {
     return;
   }
 
-  // 4 colonne di larghezza 120px ciascuna
-  int colW = 120;
-  for (int i = 0; i < 4; i++) {
-    int cx = i * colW + colW / 2;  // centro della colonna
-    int baseY = 65;
+  // ==== OGGI (Orizzontale) ====
+  tft.fillRoundRect(10, 48, 460, 90, 10, 0x1A7F);
+  
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(20, 56);
+  tft.println(days[0].label);
 
-    // Sfondo cella (arrotondato, leggermente più chiaro)
-    uint16_t cardColor = (i == 0) ? 0x1A7F : 0x0C3F;
-    tft.fillRoundRect(i * colW + 5, baseY, colW - 10, 240, 10, cardColor);
+  drawWeatherTFTIcon(60, 95, days[0].weatherCode);
 
-    // Etichetta giorno
+  tft.setTextSize(1);
+  tft.setTextColor(TFT_LIGHTGREY);
+  const char *lbl0 = weatherCodeToLabel(days[0].weatherCode);
+  int lbl0W = strlen(lbl0) * 6;
+  tft.setCursor(60 - lbl0W / 2, 120);
+  tft.println(lbl0);
+
+  tft.setTextSize(4);
+  tft.setTextColor(TFT_ORANGE);
+  char bufMax0[8]; sprintf(bufMax0, "%d", days[0].tempMax);
+  tft.setCursor(120, 75);
+  tft.print(bufMax0);
+  tft.setTextSize(2); tft.print(" max");
+
+  tft.setTextSize(4);
+  tft.setTextColor(TFT_CYAN);
+  char bufMin0[8]; sprintf(bufMin0, "%d", days[0].tempMin);
+  tft.setCursor(250, 75);
+  tft.print(bufMin0);
+  tft.setTextSize(2); tft.setTextColor(TFT_LIGHTGREY); tft.print(" min");
+
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_CYAN);
+  tft.setCursor(370, 65);
+  tft.print("U: "); tft.print(days[0].humidity); tft.print("%");
+  tft.setTextColor(0x03FF); // Azzurro differente per la pioggia
+  tft.setCursor(370, 95);
+  tft.print("P: "); tft.print(days[0].precProb); tft.print("%");
+
+  // ==== PROSSIMI 3 GIORNI (Verticale) ====
+  int colW = 146;
+  int space = 8;
+  for (int i = 1; i < 4; i++) {
+    int startX = 10 + (i - 1) * (colW + space);
+    int cx = startX + colW / 2;
+    int baseY = 145;
+
+    tft.fillRoundRect(startX, baseY, colW, 165, 10, 0x0C3F);
+
     tft.setTextSize(2);
-    tft.setTextColor(i == 0 ? TFT_YELLOW : TFT_WHITE);
+    tft.setTextColor(TFT_WHITE);
     int labelW = days[i].label.length() * 12;
     tft.setCursor(cx - labelW / 2, baseY + 8);
     tft.println(days[i].label);
 
-    // Icona meteo
-    drawWeatherTFTIcon(cx, baseY + 65, days[i].weatherCode);
+    drawWeatherTFTIcon(cx, baseY + 45, days[i].weatherCode);
 
     tft.setTextSize(1);
     tft.setTextColor(TFT_LIGHTGREY);
     const char *lbl = weatherCodeToLabel(days[i].weatherCode);
     int lblW = strlen(lbl) * 6;
-    tft.setCursor(cx - lblW / 2, baseY + 100);
+    tft.setCursor(cx - lblW / 2, baseY + 66);
     tft.println(lbl);
 
-    // Temp MAX
-    tft.setTextSize(3);
-    tft.setTextColor(TFT_ORANGE);
-    char bufMax[8];
-    sprintf(bufMax, "%d", days[i].tempMax);
-    int maxW = strlen(bufMax) * 18;
-    tft.setCursor(cx - maxW / 2, baseY + 120);
-    tft.println(bufMax);
-    tft.setTextSize(1);
-    tft.setCursor(cx + maxW / 2, baseY + 122);
-    tft.println("max");
-
-    // Temp MIN
-    tft.setTextSize(3);
-    tft.setTextColor(TFT_CYAN);
-    char bufMin[8];
-    sprintf(bufMin, "%d", days[i].tempMin);
-    int minW = strlen(bufMin) * 18;
-    tft.setCursor(cx - minW / 2, baseY + 160);
-    tft.println(bufMin);
-    tft.setTextSize(1);
-    tft.setTextColor(TFT_LIGHTGREY);
-    tft.setCursor(cx + minW / 2, baseY + 162);
-    tft.println("min");
-
-    // Gradi "°C" sotto
     tft.setTextSize(2);
-    tft.setTextColor(TFT_WHITE);
-    tft.setCursor(cx - 14, baseY + 195);
-    tft.println("C");
+    tft.setTextColor(TFT_ORANGE);
+    char tmp[16];
+    sprintf(tmp, "%d", days[i].tempMax);
+    int w1 = strlen(tmp) * 12;
+    sprintf(tmp, "%d", days[i].tempMin);
+    int w2 = strlen(tmp) * 12;
+    tft.setCursor(cx - (w1 + 12 + w2) / 2, baseY + 85);
+    tft.print(days[i].tempMax);
+    tft.setTextColor(TFT_LIGHTGREY);
+    tft.print("/");
+    tft.setTextColor(TFT_CYAN);
+    tft.print(days[i].tempMin);
+
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_CYAN);
+    tft.setCursor(cx - 36, baseY + 115);
+    tft.print("U: "); tft.print(days[i].humidity); tft.print("%");
+
+    tft.setTextColor(TFT_CYAN);
+    tft.setCursor(cx - 36, baseY + 140);
+    tft.print("P: "); tft.print(days[i].precProb); tft.print("%");
   }
 }
 

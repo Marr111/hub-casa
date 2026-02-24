@@ -28,6 +28,12 @@ int led_b = 255;
 bool led_acceso = true;
 int luminosita = 100;
 
+// Sensore KY-001 (DS18B20)
+float roomTemp = 0.0f;
+float roomHum  = 0.0f;
+OneWire oneWire(ONE_WIRE_BUS);
+DallasTemperature sensors(&oneWire);
+
 // #region agent log
 static void dbgLog(const char* location, const char* message, int a = -1, int b = -1, int c = -1, int d = -1) {
   unsigned long ts = millis();
@@ -62,6 +68,7 @@ static void dbgLog(const char* location, const char* message, int a = -1, int b 
 void setup() {
   Serial.begin(115200);
   delay(500);
+  sensors.begin();  // Inizializza sensore KY-001 (DS18B20)
   Serial.println("✨ Inizializzazione ESP32-S3... ✨");
 
   // Inizializza SPIFFS

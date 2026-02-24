@@ -85,10 +85,8 @@ void drawCircleWithDot(int x, int y, int radius) {
   tft.fillCircle(x, y, innerRadius, TFT_WHITE);
 }
 
-void drawHouse() {
-  int x = 20;
+void drawHouse(int x, int y) {
   int width = 35;
-  int y = 20;
   int height = width * 0.8;
   int roofHeight = width * 0.4;
   int doorWidth = width * 0.25;
