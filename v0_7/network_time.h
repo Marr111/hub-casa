@@ -475,15 +475,20 @@ void drawWeatherTFTIcon(int cx, int cy, int code) {
     tft.fillCircle(cx + 2, cy - 5, 11, TFT_LIGHTGREY);
     tft.fillCircle(cx + 12, cy, 9, TFT_LIGHTGREY);
     tft.fillRect(cx - 8, cy, 22, 10, TFT_LIGHTGREY);
-  } else if (code <= 69) {
-    // Nuvola con pioggia
+  } else if (code <= 49) {
+    // Nebbia
+    tft.drawFastHLine(cx - 10, cy - 4, 20, TFT_LIGHTGREY);
+    tft.drawFastHLine(cx - 14, cy, 28, TFT_LIGHTGREY);
+    tft.drawFastHLine(cx - 10, cy + 4, 20, TFT_LIGHTGREY);
+  } else if (code <= 69 || (code >= 80 && code <= 84)) {
+    // Nuvola con pioggia (include Rovesci che sono 80-84)
     tft.fillCircle(cx - 6, cy - 4, 9, TFT_LIGHTGREY);
     tft.fillCircle(cx + 6, cy - 4, 9, TFT_LIGHTGREY);
     tft.fillRect(cx - 6, cy - 4, 14, 8, TFT_LIGHTGREY);
     for (int i = 0; i < 3; i++) {
       tft.drawLine(cx - 6 + i * 6, cy + 7, cx - 9 + i * 6, cy + 16, TFT_CYAN);
     }
-  } else if (code <= 86) {
+  } else if (code <= 79 || (code >= 85 && code <= 86)) {
     // Neve
     tft.fillCircle(cx - 6, cy - 4, 9, TFT_LIGHTGREY);
     tft.fillCircle(cx + 6, cy - 4, 9, TFT_LIGHTGREY);
@@ -516,7 +521,7 @@ bool fetchWeather(WeatherDay days[4]) {
 
   // HTTP plain: Open-Meteo supporta HTTP e non causa problemi di memoria SSL
   http.begin("http://api.open-meteo.com/v1/forecast"
-             "?latitude=44.9978&longitude=7.6881"
+             "?latitude=45.0070&longitude=7.6693"
              "&daily=temperature_2m_max,temperature_2m_min,weather_code,precipitation_probability_max,relative_humidity_2m_max"
              "&timezone=Europe%2FRome&forecast_days=4");
   http.setTimeout(15000);
@@ -576,7 +581,12 @@ bool fetchWeather(WeatherDay days[4]) {
       days[i].label = String(giorniBrevi[t.tm_wday]);
     }
   }
-  Serial.println("[METEO] Dati scaricati OK");
+  Serial.println("[METEO] Dati scaricati OK. Previsioni per i prossimi giorni:");
+  for (int i = 0; i < 4; i++) {
+    Serial.printf("  %s - %s: Max %d C, Min %d C, Umidita' %d%%, Pioggia %d%%\n",
+                  days[i].label.c_str(), weatherCodeToLabel(days[i].weatherCode),
+                  days[i].tempMax, days[i].tempMin, days[i].humidity, days[i].precProb);
+  }
   return true;
 }
 
@@ -692,7 +702,7 @@ void drawWeatherPage() {
   tft.setTextColor(TFT_CYAN);
   tft.setCursor(370, 65);
   tft.print("U: "); tft.print(days[0].humidity); tft.print("%");
-  tft.setTextColor(0x03FF); // Azzurro differente per la pioggia
+  tft.setTextColor(TFT_CYAN); // Azzurro differente per la pioggia
   tft.setCursor(370, 95);
   tft.print("P: "); tft.print(days[0].precProb); tft.print("%");
 
