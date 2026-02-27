@@ -13,6 +13,7 @@ int tasksCount = 0;
 int page = 0;
 int lastPage = -1;
 int pageIndex = 0;
+int eventiPageIndex = 0; // Nuova variabile per la paginazione eventi
 int stato_scroll_bar = 1;
 int esci_dal_loop = 1;
 
@@ -108,8 +109,8 @@ void setup() {
   // --- FASE 4:Lettura Calendario ---
   updateLoadingScreen(80, "Lettura Calendario...");
   // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
-  //fetchAndParseICal();
-  //printEvents();
+  fetchAndParseICal();
+  printEvents();
   delay(200);
 
   // --- FASE 5: Completamento ---

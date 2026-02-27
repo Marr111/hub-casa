@@ -19,7 +19,8 @@ attenzione consigli tra parentesi generati con ai
 =========================================
           PROBLEMI IMPORTANTI
 =========================================
-
+-sensore temperatura e umidità non funziona
+-
 
 =========================================
        PROBLEMI MEDIAMENTE IMPORTANTI

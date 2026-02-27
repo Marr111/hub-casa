@@ -258,50 +258,113 @@ void printEvents() {
 }
 
 void printEventsTFT() {
-  int y = 80;
-  int x = 80;
-  tft.setTextColor(TFT_WHITE, sfondo_pageTask);
-  tft.setTextSize(2);
-  tft.setCursor(x, y);
-  tft.println("=== Eventi ===");
+  int y = 50; // Inizia un po' più in alto dato che non c'è più il titolo
+  int x = 10;
+  int cardWidth = 460;
+  
+  if (eventsCount == 0) {
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_LIGHTGREY);
+    tft.setCursor(x + 10, y + 20);
+    tft.println("Nessun evento in programma.");
+    return;
+  }
+
+  // Costruisci layout: quante card per pagina? circa 3-4, proviamo a calcolarlo
+  // o semplicemente cicliamo finchè c'è spazio, MA partendo dall'indice giusto
+  int eventiStart = 0;
+  
+  // un semplice sistema: ogni evento occupa circa 80-110px. 
+  // in 240 px ci stanno 2/3 eventi.
+  // Salteremo gli eventi già mostrati
+  int skipped = 0;
+  int shownOnThisPage = 0;
+  bool moreEvents = false;
 
   for (int i = 0; i < eventsCount; i++) {
     Event &e = events[i];
+    
+    int cardHeight = 70;
+    if (e.description.length() > 0) {
+      cardHeight += 30;
+    }
 
-    tft.setCursor(x, y);
-    tft.printf("--- Evento %d ---\n", i + 1);
-    y += 20;
+    // Se l'evento corrente appartiene a una pagina precedente, saltiamolo
+    // Ma come sappiamo quanti eventi c'erano nelle pagine prima?
+    // Un modo fisso è "3 eventi per pagina"
+    if (i < eventiPageIndex * 3) {
+      continue;
+    }
 
-    tft.setCursor(x, y);
-    tft.println(e.summary);
-    y += 20;
+    // Se usciamo dallo schermo con questo evento
+    if (y + cardHeight > tft.height() - 40) { // Lasciamo 40px per il tasto "Altri eventi"
+      moreEvents = true; // ci sono altri eventi da mostrare nella prossima pagina
+      break;
+    }
 
-    tft.setCursor(x, y);
+    // Disegna la card sfondo (blu scuro trasparente/arrotondato)
+    tft.fillRoundRect(x, y, cardWidth, cardHeight, 10, 0x18E3); 
+    tft.drawRoundRect(x, y, cardWidth, cardHeight, 10, TFT_CYAN);
+
+    // Titolo evento
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_YELLOW);
+    tft.setCursor(x + 15, y + 15);
+    String summaryStr = e.summary;
+    if (summaryStr.length() > 30) {
+      summaryStr = summaryStr.substring(0, 27) + "...";
+    }
+    tft.println(summaryStr);
+
+    // Data/Ora dell'evento
+    tft.setTextSize(1);
+    tft.setTextColor(TFT_WHITE);
+    tft.setCursor(x + 15, y + 40);
+    
     if (e.allDay) {
       struct tm *tm = localtime(&e.start);
-      char buf[32];
-      strftime(buf, sizeof(buf), "%Y-%m-%d (all-day)", tm);
-      tft.print("DATA: ");
+      char buf[64];
+      strftime(buf, sizeof(buf), "%d/%m/%Y - Tutto il giorno", tm);
+      tft.print("\x0F "); 
       tft.println(buf);
-      y += 20;
     } else {
       struct tm *tm = localtime(&e.start);
-      char buf[32];
-      strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M", tm);
-      tft.print("START: ");
+      char buf[64];
+      strftime(buf, sizeof(buf), "%d/%m/%Y alle %H:%M", tm);
+      tft.print("\x09 "); 
       tft.println(buf);
-      y += 20;
     }
 
-    if (e.description.length()) {
-      tft.setCursor(x, y);
-      tft.print("DESC: ");
-      tft.println(e.description);
-      y += 20;
+    // Descrizione 
+    if (e.description.length() > 0) {
+      tft.setTextColor(TFT_LIGHTGREY);
+      tft.setCursor(x + 15, y + 60);
+      String descStr = e.description;
+      if (descStr.length() > 60) {
+        descStr = descStr.substring(0, 57) + "...";
+      }
+      tft.println(descStr);
     }
 
-    if (y > tft.height() - 20) {
-      break;
+    y += cardHeight + 15; 
+    shownOnThisPage++;
+  }
+
+  // Disegna bottone "Altri eventi" o "Torna all'inizio"
+  if (eventsCount > 3) {
+    tft.fillRoundRect(150, 275, 180, 40, 10, TFT_BLUE);
+    tft.drawRoundRect(150, 275, 180, 40, 10, TFT_WHITE);
+    tft.setTextSize(2);
+    tft.setTextColor(TFT_WHITE);
+    
+    if (moreEvents) {
+      tft.setCursor(165, 287);
+      tft.print("Altri Eventi");
+    } else {
+      tft.setCursor(160, 287);
+      tft.print("Torna all'inizio");
+      // Resetta per il prossimo click
+      eventiPageIndex = -1; // -1 diventerà 0 al prossimo click nel loop
     }
   }
 }

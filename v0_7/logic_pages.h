@@ -36,6 +36,7 @@ void updateLoadingScreen(int percent, const char* message) {
 void waitRelease() {
   uint16_t x, y;
   while (tft.getTouch(&x, &y)) {
+    lastActivity = millis();
     delay(10);
   }
   delay(100);
@@ -60,6 +61,7 @@ void pageprincipale() {
     if (!tft.getTouch(&x, &y)) {
       continue;
     }
+    lastActivity = millis();
     dbgLog("logic_pages.h:pageprincipale", "touch", x, y, 0, 0);
 
     // Tasto HOME (angolo in alto a sinistra)
@@ -159,6 +161,9 @@ void pageprincipale() {
   }
 }
 
+// Aggiungi la definizione esterna per la nuova variabile
+extern int eventiPageIndex;
+
 void pageCalendario() {
   tft.fillScreen(sfondo_pageCalendario);
   tft.setTextColor(TFT_WHITE, sfondo_pageCalendario);
@@ -166,18 +171,37 @@ void pageCalendario() {
   tft.setTextSize(4);
   tft.println("Pagina 1");
   drawHouse();
+  
+  eventiPageIndex = 0; // Resetta la pagina eventi all'ingresso
+  printEventsTFT(); // Stampa solo UNA volta all'inizio
+  delay(1000);
 
   while (page == 1) {
     uint16_t x, y;
     checkInactivity();
-    printEventsTFT();
+    
+    // RIMOSSO: printEventsTFT(); da qui dentro, così non sfarfalla
     delay(10);
+    
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
+      
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
         return;
+      }
+      
+      // Area "Altri Eventi" (in fondo al centro, circa y > 260, x centrali)
+      if (x > 150 && x < 330 && y > 260) {
+        waitRelease();
+        eventiPageIndex++;
+        // Ridisegna solo la zona eventi per pulire lo schermo precedente
+        tft.fillRect(0, 80, 480, 240, sfondo_pageCalendario);
+        // Ridisegna la casetta che è stata coperta o lasciala, meglio ridisegnarla
+        drawHouse();
+        printEventsTFT();
       }
     }
   }
@@ -191,10 +215,12 @@ void pageTask() {
   tft.setTextSize(4);
   tft.println("Pagina 2");
   drawHouse();
+  delay(1000);
 
   while (page == 2) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -217,6 +243,7 @@ void page3() {
   while (page == 3) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -241,6 +268,7 @@ void page4() {
   while (page == 4) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -264,6 +292,7 @@ void page5() {
   while (page == 5) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -287,6 +316,7 @@ void page6() {
   while (page == 6) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -310,6 +340,7 @@ void page7() {
   while (page == 7) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -333,6 +364,7 @@ void page8() {
   while (page == 8) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
       if (x < 60 && y > 260) {  // Area casetta
         waitRelease();
         page = 0;
@@ -373,6 +405,7 @@ void pageImpostazioni() {
 
     uint16_t tx, ty;
     if (tft.getTouch(&tx, &ty)) {
+      lastActivity = millis();
       // Se premi la casetta (alto-sinistra: touch X piccolo, touch Y grande per Y invertito)
       if (tx < 60 && ty > 260) {  // Area casetta
         Serial.println("Uscita da Impostazioni");
@@ -548,6 +581,7 @@ void stato_scroll_bar3() {
 int touchMenu(int stato_scroll_bar) {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
+    lastActivity = millis();
     // Freccia su
     if (x > 440 && y < 25) {
       if (stato_scroll_bar < 3) {
