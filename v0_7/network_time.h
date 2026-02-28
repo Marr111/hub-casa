@@ -95,48 +95,41 @@ time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly) {
   memset(&tm, 0, sizeof(tm));
 
   if (dateOnly) {
-    int y = val.substring(0, 4).toInt();
-    int m = val.substring(4, 6).toInt();
-    int d = val.substring(6, 8).toInt();
-    tm.tm_year = y - 1900;
-    tm.tm_mon = m - 1;
-    tm.tm_mday = d;
+    tm.tm_year = val.substring(0, 4).toInt() - 1900;
+    tm.tm_mon = val.substring(4, 6).toInt() - 1;
+    tm.tm_mday = val.substring(6, 8).toInt();
     tm.tm_hour = 0;
     tm.tm_min = 0;
     tm.tm_sec = 0;
     tm.tm_isdst = -1;
-    return mktime(&tm);
   } else {
-    int y = val.substring(0, 4).toInt();
-    int mo = val.substring(4, 6).toInt();
-    int da = val.substring(6, 8).toInt();
-    int hh = val.substring(9, 11).toInt();
-    int mm = val.substring(11, 13).toInt();
-    int ss = val.substring(13, 15).toInt();
-    tm.tm_year = y - 1900;
-    tm.tm_mon = mo - 1;
-    tm.tm_mday = da;
-    tm.tm_hour = hh;
-    tm.tm_min = mm;
-    tm.tm_sec = ss;
+    tm.tm_year = val.substring(0, 4).toInt() - 1900;
+    tm.tm_mon = val.substring(4, 6).toInt() - 1;
+    tm.tm_mday = val.substring(6, 8).toInt();
+    tm.tm_hour = val.substring(9, 11).toInt();
+    tm.tm_min = val.substring(11, 13).toInt();
+    tm.tm_sec = val.substring(13, 15).toInt();
     tm.tm_isdst = -1;
+  }
 
-    char *oldTZ = getenv("TZ");
-    char *oldCopy = NULL;
-    if (oldTZ) oldCopy = strdup(oldTZ);
-    if (isUtc) {
-      setenv("TZ", "UTC0", 1);
-      tzset();
+  if (isUtc) {
+    // Calcolo manuale timegm per evitare l'overhead estremo di tzset()
+    int year = tm.tm_year + 1900;
+    int month = tm.tm_mon;
+    int days = 0;
+    for (int y = 1970; y < year; y++) {
+      days += (y % 4 == 0 && (y % 100 != 0 || y % 400 == 0)) ? 366 : 365;
     }
-    time_t t = mktime(&tm);
-    if (oldCopy) {
-      setenv("TZ", oldCopy, 1);
-      free(oldCopy);
-    } else {
-      unsetenv("TZ");
-    }
-    tzset();
-    return t;
+    static const int days_before_month[2][12] = {
+        {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334},
+        {0, 31, 60, 91, 121, 152, 182, 213, 244, 274, 305, 335}
+    };
+    int leap = (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)) ? 1 : 0;
+    days += days_before_month[leap][month < 0 ? 0 : (month > 11 ? 11 : month)];
+    days += tm.tm_mday - 1;
+    return (time_t)days * 86400LL + tm.tm_hour * 3600LL + tm.tm_min * 60LL + tm.tm_sec;
+  } else {
+    return mktime(&tm);
   }
 }
 
@@ -165,25 +158,51 @@ void fetchAndParseICal() {
 void parseICalStream(WiFiClient *stream) {
   eventsCount = 0;
   String lastLine = "";
+  lastLine.reserve(256);
   bool inEvent = false;
   Event curr;
+  String raw = "";
+  raw.reserve(256);
+
+  uint8_t buffer[512];
 
   while (stream->connected() || stream->available()) {
-    String raw = stream->readStringUntil('\n');
-    raw.trim();
-    if (raw.length() == 0) continue;
-
-    if (raw[0] == ' ' || raw[0] == '\t') {
-      lastLine += raw.substring(1);
-      continue;
-    } else {
-      if (lastLine.length() > 0) {
-        processLine(lastLine, inEvent, curr);
+    int available = stream->available();
+    if (available > 0) {
+      int toRead = available > sizeof(buffer) ? sizeof(buffer) : available;
+      int bytes = stream->read(buffer, toRead);
+      for (int i = 0; i < bytes; i++) {
+        char c = (char)buffer[i];
+        if (c == '\r') continue;
+        if (c == '\n') {
+          if (raw.length() > 0) {
+            if (raw[0] == ' ' || raw[0] == '\t') {
+              lastLine += raw.substring(1);
+            } else {
+              if (lastLine.length() > 0) {
+                processLine(lastLine, inEvent, curr);
+              }
+              lastLine = raw;
+            }
+          }
+          raw = "";
+        } else {
+          raw += c;
+        }
       }
-      lastLine = raw;
+    } else {
+      delay(1);
     }
   }
 
+  if (raw.length() > 0) {
+    if (raw[0] == ' ' || raw[0] == '\t') {
+      lastLine += raw.substring(1);
+    } else {
+      if (lastLine.length() > 0) processLine(lastLine, inEvent, curr);
+      lastLine = raw;
+    }
+  }
   if (lastLine.length() > 0) {
     processLine(lastLine, inEvent, curr);
   }
@@ -201,7 +220,8 @@ void processLine(String &line, bool &inEvent, Event &curr) {
     curr = Event();
   } else if (name == "END" && value == "VEVENT") {
     inEvent = false;
-    if (curr.start >= now && eventsCount < MAX_EVENTS) {
+    time_t limit = now + (31 * 24 * 60 * 60); // 31 giorni da oggi
+    if (curr.start >= now && curr.start <= limit && eventsCount < MAX_EVENTS) {
       events[eventsCount++] = curr;
     }
   } else if (inEvent) {
