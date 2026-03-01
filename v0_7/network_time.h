@@ -134,13 +134,17 @@ time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly) {
 }
 
 void fetchAndParseICal() {
+  WiFi.setSleep(false);            // disabilita il power saving WiFi — GRANDE impatto
   now = time(nullptr);
   WiFiClientSecure *client = new WiFiClientSecure;
   client->setInsecure();
   HTTPClient http;
 
+  http.setTimeout(10000);          // era default 5s, ma aumenta la banda
+
   Serial.println("Scarico iCal...");
   if (http.begin(*client, ICAL_URL)) {
+    http.addHeader("Accept-Encoding", "identity"); // disabilita gzip se non lo gestisci
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
       WiFiClient *stream = http.getStreamPtr();
@@ -158,92 +162,158 @@ void fetchAndParseICal() {
 void parseICalStream(WiFiClient *stream) {
   eventsCount = 0;
   String lastLine = "";
-  lastLine.reserve(256);
+  lastLine.reserve(512);
   bool inEvent = false;
   Event curr;
-  String raw = "";
-  raw.reserve(256);
 
-  uint8_t buffer[512];
+  const size_t CHUNK = 1024;
+  uint8_t buf[CHUNK];
+  String leftover = "";
 
   while (stream->connected() || stream->available()) {
-    int available = stream->available();
-    if (available > 0) {
-      int toRead = available > sizeof(buffer) ? sizeof(buffer) : available;
-      int bytes = stream->read(buffer, toRead);
-      for (int i = 0; i < bytes; i++) {
-        char c = (char)buffer[i];
-        if (c == '\r') continue;
-        if (c == '\n') {
-          if (raw.length() > 0) {
-            if (raw[0] == ' ' || raw[0] == '\t') {
-              lastLine += raw.substring(1);
-            } else {
-              if (lastLine.length() > 0) {
-                processLine(lastLine, inEvent, curr);
-              }
-              lastLine = raw;
-            }
+    if (stream->available()) {
+      size_t len = stream->readBytes(buf, min((size_t)stream->available(), CHUNK));
+      String chunk = leftover + String((char*)buf).substring(0, len);
+      leftover = "";
+      
+      int start = 0;
+      int nl;
+      while ((nl = chunk.indexOf('\n', start)) >= 0) {
+        String raw = chunk.substring(start, nl);
+        raw.replace("\r", "");
+        start = nl + 1;
+        
+        if (raw.length() > 0) {
+          if (raw[0] == ' ' || raw[0] == '\t') {
+            lastLine += raw.substring(1);
+          } else {
+            if (lastLine.length() > 0) processLine(lastLine, inEvent, curr);
+            lastLine = raw;
           }
-          raw = "";
-        } else {
-          raw += c;
         }
       }
+      leftover = chunk.substring(start);
     } else {
       delay(1);
     }
   }
-
-  if (raw.length() > 0) {
-    if (raw[0] == ' ' || raw[0] == '\t') {
-      lastLine += raw.substring(1);
-    } else {
-      if (lastLine.length() > 0) processLine(lastLine, inEvent, curr);
-      lastLine = raw;
-    }
-  }
-  if (lastLine.length() > 0) {
+  // flush
+  if (leftover.length() > 0 || lastLine.length() > 0) {
+    lastLine += leftover;
     processLine(lastLine, inEvent, curr);
+  }
+
+  // Ordina gli eventi in ordine cronologico (dal più vicino al più lontano)
+  for (int i = 0; i < eventsCount - 1; i++) {
+    for (int j = 0; j < eventsCount - i - 1; j++) {
+      if (events[j].start > events[j + 1].start) {
+        Event temp = events[j];
+        events[j] = events[j + 1];
+        events[j + 1] = temp;
+      }
+    }
   }
 }
 
 void processLine(String &line, bool &inEvent, Event &curr) {
-  int colon = line.indexOf(':');
-  String name = (colon >= 0) ? line.substring(0, colon) : line;
-  String value = (colon >= 0) ? line.substring(colon + 1) : "";
+  const char* raw = line.c_str();
+  const char* colon = strchr(raw, ':');
+  if (!colon) return;
+
+  int colonPos = colon - raw;
+  String name = line.substring(0, colonPos);
+  String value = line.substring(colonPos + 1);
   name.trim();
   value.trim();
 
-  if (name == "BEGIN" && value == "VEVENT") {
-    inEvent = true;
-    curr = Event();
-  } else if (name == "END" && value == "VEVENT") {
-    inEvent = false;
-    time_t limit = now + (31 * 24 * 60 * 60); // 31 giorni da oggi
-    if (curr.start >= now && curr.start <= limit && eventsCount < MAX_EVENTS) {
-      events[eventsCount++] = curr;
+  // Estrai la chiave base (prima del ';' se presente)
+  String key = name;
+  int semi = name.indexOf(';');
+  if (semi != -1) key = name.substring(0, semi);
+
+  if (key == "BEGIN") {
+    if (value == "VEVENT") {
+      inEvent = true;
+      curr = Event();
+    }
+  } else if (key == "END") {
+    if (value == "VEVENT") {
+      inEvent = false;
+      time_t limit = now + (31 * 24 * 60 * 60);
+
+      if (curr.rruleWeekly) {
+        // Espandi tutte le occorrenze settimanali nella finestra now..limit
+        time_t duration = (curr.end != 0) ? (curr.end - curr.start) : (curr.allDay ? 86400 : 0);
+        time_t until = (curr.rruleUntil != 0) ? curr.rruleUntil : limit;
+        time_t step = (time_t)curr.rruleInterval * 7 * 24 * 3600;
+        for (time_t occ = curr.start; occ <= min(limit, until); occ += step) {
+          time_t occEnd = occ + duration;
+          if (occEnd >= now && eventsCount < MAX_EVENTS) {
+            Event copy = curr;
+            copy.start = occ;
+            copy.end   = (curr.end != 0) ? occEnd : curr.end;
+            copy.rruleWeekly = false; // non ri-espandere
+            events[eventsCount++] = copy;
+          }
+        }
+      } else {
+        time_t effectiveEnd = (curr.end != 0) ? curr.end : (curr.start + (curr.allDay ? 86400 : 0));
+        if (effectiveEnd >= now && curr.start <= limit && eventsCount < MAX_EVENTS) {
+          events[eventsCount++] = curr;
+        }
+      }
     }
   } else if (inEvent) {
-    String key = name;
-    int semi = name.indexOf(';');
-    if (semi != -1) key = name.substring(0, semi);
-
-    if (key == "SUMMARY") curr.summary = icalUnescape(value);
-    else if (key == "DESCRIPTION") curr.description = icalUnescape(value);
-    else if (key == "DTSTART") {
+    if (key == "SUMMARY") {
+      curr.summary = icalUnescape(value);
+    } else if (key == "DESCRIPTION") {
+      curr.description = icalUnescape(value);
+    } else if (key == "DTSTART") {
       bool isUtc = value.endsWith("Z");
-      String clean = value;
-      if (isUtc) clean = value.substring(0, value.length() - 1);
+      // Gestisci parametri come TZID=Europe/Rome nel nome del campo
+      String clean;
+      if (isUtc) {
+        clean = value.substring(0, value.length() - 1);
+      } else {
+        // rimuovi eventuale part 'T' prefix check
+        clean = value;
+      }
       bool dateOnly = (clean.indexOf('T') == -1);
       curr.allDay = dateOnly;
+      // Per TZID (ora locale), isUtc=false → mktime() applica il fuso locale
       curr.start = parseICalDateToTime(clean, isUtc, dateOnly);
     } else if (key == "DTEND") {
       bool isUtc = value.endsWith("Z");
-      String clean = value;
-      if (isUtc) clean = value.substring(0, value.length() - 1);
+      String clean = isUtc ? value.substring(0, value.length() - 1) : value;
       bool dateOnly = (clean.indexOf('T') == -1);
       curr.end = parseICalDateToTime(clean, isUtc, dateOnly);
+    } else if (key == "RRULE") {
+      // Parsing minimale: FREQ=WEEKLY;UNTIL=YYYYMMDD[T...];INTERVAL=N
+      if (value.indexOf("FREQ=WEEKLY") >= 0) {
+        curr.rruleWeekly = true;
+        // Leggi INTERVAL
+        int iIdx = value.indexOf("INTERVAL=");
+        if (iIdx >= 0) {
+          curr.rruleInterval = value.substring(iIdx + 9).toInt();
+          if (curr.rruleInterval < 1) curr.rruleInterval = 1;
+        } else {
+          curr.rruleInterval = 1;
+        }
+        // Leggi UNTIL
+        int uIdx = value.indexOf("UNTIL=");
+        if (uIdx >= 0) {
+          String untilStr = value.substring(uIdx + 6);
+          // Tronca al ';' successivo se presente
+          int sc = untilStr.indexOf(';');
+          if (sc >= 0) untilStr = untilStr.substring(0, sc);
+          bool uUtc = untilStr.endsWith("Z");
+          if (uUtc) untilStr = untilStr.substring(0, untilStr.length() - 1);
+          bool uDate = (untilStr.indexOf('T') == -1);
+          curr.rruleUntil = parseICalDateToTime(untilStr, uUtc, uDate);
+        } else {
+          curr.rruleUntil = 0;
+        }
+      }
     }
   }
 }
@@ -277,8 +347,158 @@ void printEvents() {
   }
 }
 
+// ============================================================================
+// CALENDARIO GRAFICO - griglia mensile
+// ============================================================================
+static const int CAL_HDR_H = 38;
+static const int CAL_DN_H  = 20;
+static const int CAL_TOP   = CAL_HDR_H + CAL_DN_H; // 58
+static const int CAL_ROWS  = 6;
+static const int CAL_COLS  = 7;
+static const int CAL_CW    = 480 / CAL_COLS; // 68
+static const int CAL_CH    = (320 - CAL_TOP) / CAL_ROWS; // 43
+
+int calGetStartWday(int month, int year) {
+  struct tm t = {}; t.tm_year=year-1900; t.tm_mon=month-1; t.tm_mday=1; t.tm_isdst=-1;
+  mktime(&t);
+  return (t.tm_wday + 6) % 7; // 0=Lun .. 6=Dom
+}
+
+int calDaysInMonth(int month, int year) {
+  struct tm t = {}; t.tm_year=year-1900; t.tm_mon=month; t.tm_mday=0; t.tm_isdst=-1;
+  mktime(&t); return t.tm_mday;
+}
+
+int calGetEventsForDay(int day, int month, int year, int* outIdx, int maxOut) {
+  struct tm ts = {}; ts.tm_year=year-1900; ts.tm_mon=month-1; ts.tm_mday=day; ts.tm_isdst=-1;
+  time_t dS = mktime(&ts), dE = dS + 86400;
+  int n = 0;
+  for (int i = 0; i < eventsCount && n < maxOut; i++) {
+    time_t es = events[i].start;
+    time_t ee = (events[i].end!=0) ? events[i].end : es+(events[i].allDay?86400:3600);
+    if (es < dE && ee > dS) outIdx[n++] = i;
+  }
+  return n;
+}
+
+void drawCalendarGrid(int month, int year) {
+  tft.fillScreen(0x0821);
+  // Header
+  tft.fillRect(0, 0, 480, CAL_HDR_H, 0x1082);
+  drawHouse(8, 6);
+  const char* mN[] = {"GENNAIO","FEBBRAIO","MARZO","APRILE","MAGGIO","GIUGNO",
+                      "LUGLIO","AGOSTO","SETTEMBRE","OTTOBRE","NOVEMBRE","DICEMBRE"};
+  char hdr[32]; sprintf(hdr, "%s %d", mN[month-1], year);
+  tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
+  tft.setCursor(240-(int)strlen(hdr)*6+20, 11);
+  tft.print(hdr);
+  // Nomi giorni
+  tft.fillRect(0, CAL_HDR_H, 480, CAL_DN_H, 0x10A2);
+  const char* dn[] = {"L","M","M","G","V","S","D"};
+  for (int c=0; c<7; c++) {
+    tft.setTextSize(1); tft.setTextColor(c>=5?0xF800:0x7BCF);
+    tft.setCursor(c*CAL_CW + CAL_CW/2-3, CAL_HDR_H+6);
+    tft.print(dn[c]);
+  }
+  int startW = calGetStartWday(month, year);
+  int dim    = calDaysInMonth(month, year);
+  getLocalTime(&timeinfo);
+  int todD=timeinfo.tm_mday, todM=timeinfo.tm_mon+1, todY=timeinfo.tm_year+1900;
+  int evtIdx[8];
+  static const uint16_t EP[]={0xFFE0,0x07FF,0xFD20}; // giallo, ciano, arancione
+  for (int row=0; row<CAL_ROWS; row++) {
+    for (int col=0; col<CAL_COLS; col++) {
+      int d  = row*CAL_COLS + col - startW + 1;
+      int cx = col*CAL_CW, cy = CAL_TOP + row*CAL_CH;
+      tft.drawRect(cx, cy, CAL_CW, CAL_CH, 0x2104);
+      if (d<1 || d>dim) continue;
+      bool isToday = (d==todD && month==todM && year==todY);
+      int n = calGetEventsForDay(d, month, year, evtIdx, 8);
+      uint16_t bg = isToday ? 0x0228 : (n>0 ? 0x1143 : 0x0841);
+      tft.fillRect(cx+1, cy+1, CAL_CW-2, CAL_CH-2, bg);
+      if (isToday) {
+        tft.drawRect(cx, cy, CAL_CW, CAL_CH, TFT_CYAN);
+        tft.drawRect(cx+1, cy+1, CAL_CW-2, CAL_CH-2, TFT_CYAN);
+      }
+      // Numero giorno
+      tft.setTextSize(1);
+      tft.setTextColor(isToday ? TFT_CYAN : (col>=5 ? 0xFB00 : TFT_WHITE));
+      char ds[3]; sprintf(ds,"%d",d);
+      tft.setCursor(cx+3, cy+3); tft.print(ds);
+      // Labels eventi (max 3)
+      for (int e=0; e<3 && e<n; e++) {
+        String s = events[evtIdx[e]].summary; s.trim();
+        if (s.length()>7) s=s.substring(0,7);
+        tft.setTextSize(1); tft.setTextColor(EP[e]);
+        tft.setCursor(cx+2, cy+14+e*10); tft.print(s);
+      }
+    }
+  }
+}
+
+// Restituisce il giorno (1-31) toccato, oppure -1
+int calGetTouchedDay(uint16_t tx, uint16_t ty, int month, int year) {
+  int gy = 320 - (int)ty; // Y invertita
+  if (gy < CAL_TOP || gy >= CAL_TOP + CAL_ROWS*CAL_CH) return -1;
+  int row = (gy - CAL_TOP) / CAL_CH;
+  int col = (int)tx / CAL_CW;
+  if (col<0 || col>=CAL_COLS) return -1;
+  int d = row*CAL_COLS + col - calGetStartWday(month,year) + 1;
+  int dim = calDaysInMonth(month, year);
+  if (d<1 || d>dim) return -1;
+  return d;
+}
+
+void drawDayDetail(int day, int month, int year) {
+  tft.fillScreen(0x0821);
+  // Header
+  tft.fillRect(0, 0, 480, CAL_HDR_H, 0x1082);
+  const char* mN[] = {"Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"};
+  char title[32]; sprintf(title, "%d %s %d", day, mN[month-1], year);
+  tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
+  tft.setCursor(60, 11); tft.print(title);
+  // Bottone "< Cal." in alto a DESTRA (touch x>380 && y>280)
+  tft.fillRoundRect(410, 5, 66, 28, 6, 0x3186);
+  tft.setTextSize(1); tft.setTextColor(TFT_WHITE);
+  tft.setCursor(416, 15); tft.print("< Cal.");
+  // Lista eventi
+  int evtIdx[MAX_EVENTS];
+  int n = calGetEventsForDay(day, month, year, evtIdx, MAX_EVENTS);
+  if (n==0) {
+    tft.setTextColor(0x7BCF); tft.setTextSize(2);
+    tft.setCursor(140, 160); tft.print("Nessun evento"); return;
+  }
+  int y=44;
+  for (int i=0; i<n && y<310; i++) {
+    Event& e = events[evtIdx[i]];
+    bool hasDsc = e.description.length()>0;
+    int cH = hasDsc ? 60 : 44;
+    tft.fillRoundRect(6, y, 468, cH, 6, 0x1143);
+    tft.drawRoundRect(6, y, 468, cH, 6, TFT_CYAN);
+    tft.setTextSize(1);
+    if (e.allDay) {
+      tft.setTextColor(TFT_LIGHTGREY); tft.setCursor(12,y+5); tft.print("Tutto il giorno");
+    } else {
+      struct tm* st=localtime(&e.start); char tb[12]; strftime(tb,sizeof(tb),"%H:%M",st);
+      String ts2=String(tb);
+      if (e.end!=0) { struct tm* et=localtime(&e.end); char tb2[12]; strftime(tb2,sizeof(tb2),"-%H:%M",et); ts2+=String(tb2); }
+      tft.setTextColor(TFT_CYAN); tft.setCursor(12,y+5); tft.print(ts2);
+    }
+    tft.setTextSize(1); tft.setTextColor(TFT_YELLOW);
+    String summ=e.summary; if(summ.length()>60) summ=summ.substring(0,57)+"...";
+    tft.setCursor(12,y+18); tft.print(summ);
+    if (hasDsc) {
+      tft.setTextColor(0x8C71);
+      String desc=e.description; if(desc.length()>60) desc=desc.substring(0,57)+"...";
+      tft.setCursor(12,y+32); tft.print(desc);
+    }
+    y += cH+4;
+  }
+}
+
+// Legacy stub (non più usata, rimane per compatibilità)
 void printEventsTFT() {
-  int y = 50; // Inizia un po' più in alto dato che non c'è più il titolo
+  int y = 70; // Spostato a 70 per non sovrascrivere il titolo "Pagina 1"
   int x = 10;
   int cardWidth = 460;
   
@@ -390,29 +610,67 @@ void printEventsTFT() {
 }
 
 void printTasksTFT() {
-  int y = 80;
-  int x = 80;
-  tft.setTextSize(2);
-  tft.setCursor(x, y);
-  tft.setTextColor(TFT_WHITE);
-  tft.println("=== To-Do List ===");
+  tft.fillScreen(0x0821);
 
+  // Header
+  tft.fillRect(0, 0, 480, 38, 0x1082);
+  drawHouse(8, 6);
+  tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
+  tft.setCursor(60, 11); tft.print("TO-DO LIST");
+
+  // Contatore completati
+  int done = 0;
+  for (int i = 0; i < tasksCount; i++) if (tasks[i].done) done++;
+  tft.setTextSize(1); tft.setTextColor(0x07E0);
+  char prog[24]; sprintf(prog, "%d/%d completati", done, tasksCount);
+  tft.setCursor(350, 16); tft.print(prog);
+
+  if (tasksCount == 0) {
+    tft.setTextColor(0x7BCF); tft.setTextSize(2);
+    tft.setCursor(120, 160); tft.print("Nessun task presente");
+    return;
+  }
+
+  int y = 44;
   int start = pageIndex * TASKS_PER_PAGE;
-  time_t now = time(nullptr);
+  for (int i = start; i < tasksCount && i < start + TASKS_PER_PAGE && y < 310; i++) {
+    Task& t = tasks[i];
+    int cH = 44;
 
-  for (int i = start; i < tasksCount && i < start + TASKS_PER_PAGE; i++) {
-    Task &t = tasks[i];
-    tft.setCursor(x, y);
-    tft.setTextColor(t.done ? TFT_DARKGREY : TFT_WHITE);
+    // Card
+    uint16_t cardBg = t.done ? 0x0C23 : 0x1143;
+    tft.fillRoundRect(6, y, 468, cH, 6, cardBg);
+    tft.drawRoundRect(6, y, 468, cH, 6, t.done ? 0x07E0 : TFT_CYAN);
 
-    tft.print(t.title);
-    if (t.due != 0 && t.due >= now) {
-      struct tm *tmDue = localtime(&t.due);
-      char buf[32];
-      strftime(buf, sizeof(buf), " (%Y-%m-%d %H:%M)", tmDue);
-      tft.print(buf);
+    // Checkbox (sinistra)
+    if (t.done) {
+      // Segno di spunta verde
+      tft.fillRoundRect(14, y+12, 18, 18, 3, 0x07E0);
+      tft.setTextSize(1); tft.setTextColor(TFT_BLACK);
+      tft.setCursor(18, y+16); tft.print("OK");
+    } else {
+      // Quadratino vuoto
+      tft.drawRoundRect(14, y+12, 18, 18, 3, TFT_WHITE);
     }
-    y += 20;
+
+    // Titolo task
+    tft.setTextSize(1);
+    tft.setTextColor(t.done ? 0x7BCF : TFT_WHITE);
+    String title = t.title;
+    if (title.length() > 52) title = title.substring(0, 49) + "...";
+    tft.setCursor(40, y + 10); tft.print(title);
+
+    // Data scadenza (se presente e futura)
+    time_t nowT = time(nullptr);
+    if (t.due != 0) {
+      struct tm* td = localtime(&t.due);
+      char buf[32]; strftime(buf, sizeof(buf), "Scade: %d/%m/%Y", td);
+      tft.setTextSize(1);
+      tft.setTextColor(t.due < nowT ? 0xF800 : 0xFD20); // rosso se scaduto, arancione altrimenti
+      tft.setCursor(40, y + 26); tft.print(buf);
+    }
+
+    y += cH + 4;
   }
 }
 

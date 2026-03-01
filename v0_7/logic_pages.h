@@ -165,71 +165,72 @@ void pageprincipale() {
 extern int eventiPageIndex;
 
 void pageCalendario() {
-  tft.fillScreen(sfondo_pageCalendario);
-  tft.setTextColor(TFT_WHITE, sfondo_pageCalendario);
-  tft.setCursor(130, 30);
-  tft.setTextSize(4);
-  tft.println("Pagina 1");
-  drawHouse();
-  
-  eventiPageIndex = 0; // Resetta la pagina eventi all'ingresso
-  printEventsTFT(); // Stampa solo UNA volta all'inizio
-  delay(1000);
+  getLocalTime(&timeinfo);
+  int curM = timeinfo.tm_mon + 1;
+  int curY = timeinfo.tm_year + 1900;
+
+  drawCalendarGrid(curM, curY);
+  delay(300);
+
+  int state = 0;  // 0=griglia, 1=dettaglio giorno
+  int selDay = -1;
 
   while (page == 1) {
     uint16_t x, y;
     checkInactivity();
-    
-    // RIMOSSO: printEventsTFT(); da qui dentro, così non sfarfalla
-    delay(10);
-    
-    if (tft.getTouch(&x, &y)) {
-      lastActivity = millis();
-      
-      if (x < 60 && y > 260) {  // Area casetta
+    if (!tft.getTouch(&x, &y)) { delay(10); continue; }
+    lastActivity = millis();
+
+    if (state == 1) {
+      // --- Vista dettaglio ---
+      // Bottone "< Cal." disegnato in alto a destra (graphical x>390, y=5-33)
+      // touch Y invertito: alto grafico = y grande → x>380 && y>280
+      if (x > 380 && y > 280) {
         waitRelease();
-        page = 0;
-        disegnaHome();
-        return;
+        drawCalendarGrid(curM, curY);
+        state = 0; selDay = -1;
+        continue;
       }
-      
-      // Area "Altri Eventi" (in fondo al centro, circa y > 260, x centrali)
-      if (x > 150 && x < 330 && y > 260) {
+      // Casetta → home
+      if (x < 60 && y > 260) {
         waitRelease();
-        eventiPageIndex++;
-        // Ridisegna solo la zona eventi per pulire lo schermo precedente
-        tft.fillRect(0, 80, 480, 240, sfondo_pageCalendario);
-        // Ridisegna la casetta che è stata coperta o lasciala, meglio ridisegnarla
-        drawHouse();
-        printEventsTFT();
+        page = 0; disegnaHome(); return;
+      }
+    } else {
+      // --- Vista griglia ---
+      // Casetta → home
+      if (x < 60 && y > 260) {
+        waitRelease();
+        page = 0; disegnaHome(); return;
+      }
+      // Tap su una cella giorno
+      int d = calGetTouchedDay(x, y, curM, curY);
+      if (d > 0) {
+        waitRelease();
+        selDay = d;
+        drawDayDetail(selDay, curM, curY);
+        state = 1;
       }
     }
+    delay(10);
   }
 }
 
 void pageTask() {
-  tft.fillScreen(sfondo_pageTask);
-  tft.setTextColor(TFT_WHITE, sfondo_pageTask);
   printTasksTFT();
-  tft.setCursor(130, 30);
-  tft.setTextSize(4);
-  tft.println("Pagina 2");
-  drawHouse();
-  delay(1000);
+  delay(300);
 
   while (page == 2) {
     uint16_t x, y;
-    if (tft.getTouch(&x, &y)) {
-      lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
-        waitRelease();
-        page = 0;
-        disegnaHome();
-        return;
-      }
-    }
     checkInactivity();
-    printTasksTFT();
+    if (!tft.getTouch(&x, &y)) { delay(10); continue; }
+    lastActivity = millis();
+    if (x < 60 && y > 260) {  // Casa → home
+      waitRelease();
+      page = 0;
+      disegnaHome();
+      return;
+    }
     delay(10);
   }
 }

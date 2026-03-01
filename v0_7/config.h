@@ -77,7 +77,7 @@
 // ============================================================================
 // LIMITI E COSTANTI
 // ============================================================================
-#define MAX_EVENTS 3
+#define MAX_EVENTS 60
 #define MAX_TASKS 10
 #define TASKS_PER_PAGE 10
 #define INACTIVITY_TIMEOUT 30000  // 30 secondi in millisecondi
@@ -116,6 +116,10 @@ struct Event {
   time_t start = 0;
   time_t end = 0;
   bool allDay = false;
+  // Ricorrenza settimanale (RRULE:FREQ=WEEKLY)
+  bool rruleWeekly = false;
+  time_t rruleUntil = 0;   // 0 = nessun UNTIL (usa finestra di default)
+  int    rruleInterval = 1; // INTERVAL=N (di solito 1)
 };
 
 /**
@@ -190,7 +194,14 @@ void fetchAndParseICal();
 void parseICalStream(WiFiClient *stream);
 void processLine(String &line, bool &inEvent, Event &curr);
 void printEvents();
-void printEventsTFT();
+void printEventsTFT(); // legacy
+// Calendario grafico
+int  calGetStartWday(int month, int year);
+int  calDaysInMonth(int month, int year);
+int  calGetEventsForDay(int day, int month, int year, int* outIdx, int maxOut);
+void drawCalendarGrid(int month, int year);
+int  calGetTouchedDay(uint16_t tx, uint16_t ty, int month, int year);
+void drawDayDetail(int day, int month, int year);
 void printTasksTFT();
 void drawWeatherPage();
 void readSensor();
