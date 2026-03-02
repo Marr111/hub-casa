@@ -192,9 +192,15 @@ String icalUnescape(String s);
 time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly);
 void fetchAndParseICal();
 void parseICalStream(WiFiClient *stream);
-void processLine(String &line, bool &inEvent, Event &curr);
+void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &currTask);
 void printEvents();
 void printEventsTFT(); // legacy
+void drawWeekView(int weekOffset);
+bool weekCanGoLeft(int weekOffset);
+bool weekCanGoRight(int weekOffset);
+bool weekArrowLeftTouched(uint16_t tx, uint16_t ty);
+bool weekArrowRightTouched(uint16_t tx, uint16_t ty);
+bool calGetTouchedDayWeek(uint16_t tx, uint16_t ty, int weekOffset, int* outDay, int* outMonth, int* outYear);
 // Calendario grafico
 int  calGetStartWday(int month, int year);
 int  calDaysInMonth(int month, int year);

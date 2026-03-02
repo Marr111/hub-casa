@@ -165,15 +165,13 @@ void pageprincipale() {
 extern int eventiPageIndex;
 
 void pageCalendario() {
-  getLocalTime(&timeinfo);
-  int curM = timeinfo.tm_mon + 1;
-  int curY = timeinfo.tm_year + 1900;
+  int weekOffset = 0;  // 0 = settimana corrente
 
-  drawCalendarGrid(curM, curY);
+  drawWeekView(weekOffset);
   delay(300);
 
-  int state = 0;  // 0=griglia, 1=dettaglio giorno
-  int selDay = -1;
+  int state = 0;  // 0=vista settimanale, 1=dettaglio giorno
+  int selDay = -1, selMonth = -1, selYear = -1;
 
   while (page == 1) {
     uint16_t x, y;
@@ -182,12 +180,11 @@ void pageCalendario() {
     lastActivity = millis();
 
     if (state == 1) {
-      // --- Vista dettaglio ---
-      // Bottone "< Cal." disegnato in alto a destra (graphical x>390, y=5-33)
-      // touch Y invertito: alto grafico = y grande → x>380 && y>280
+      // --- Vista dettaglio giorno ---
+      // Bottone "< Cal." in alto a destra: touch x>380 && y>280
       if (x > 380 && y > 280) {
         waitRelease();
-        drawCalendarGrid(curM, curY);
+        drawWeekView(weekOffset);
         state = 0; selDay = -1;
         continue;
       }
@@ -197,18 +194,34 @@ void pageCalendario() {
         page = 0; disegnaHome(); return;
       }
     } else {
-      // --- Vista griglia ---
+      // --- Vista settimanale ---
+      // Freccia sinistra ◀ (controlla prima della casetta per evitare overlap)
+      if (weekArrowLeftTouched(x, y)) {
+        if (weekCanGoLeft(weekOffset)) {
+          waitRelease();
+          weekOffset--;
+          drawWeekView(weekOffset);
+        }
+        continue;
+      }
+      // Freccia destra ▶
+      if (weekArrowRightTouched(x, y)) {
+        if (weekCanGoRight(weekOffset)) {
+          waitRelease();
+          weekOffset++;
+          drawWeekView(weekOffset);
+        }
+        continue;
+      }
       // Casetta → home
       if (x < 60 && y > 260) {
         waitRelease();
         page = 0; disegnaHome(); return;
       }
-      // Tap su una cella giorno
-      int d = calGetTouchedDay(x, y, curM, curY);
-      if (d > 0) {
+      // Tap su un giorno della settimana
+      if (calGetTouchedDayWeek(x, y, weekOffset, &selDay, &selMonth, &selYear)) {
         waitRelease();
-        selDay = d;
-        drawDayDetail(selDay, curM, curY);
+        drawDayDetail(selDay, selMonth, selYear);
         state = 1;
       }
     }

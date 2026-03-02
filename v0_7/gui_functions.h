@@ -3,6 +3,12 @@
 
 #include "config.h"
 
+
+
+// ============================================================================
+// ICONE GUI
+// ============================================================================
+
 void drawWiFiSymbol(int x, int y) {
   bool connected = (WiFi.status() == WL_CONNECTED);
   uint16_t color = connected ? TFT_GREEN : TFT_RED;
@@ -93,11 +99,11 @@ void drawHouse(int x, int y) {
   int doorHeight = height * 0.6;
   int windowSize = width * 0.15;
 
-  uint16_t wallColor = TFT_YELLOW;
-  uint16_t roofColor = TFT_RED;
-  uint16_t doorColor = TFT_BROWN;
+  uint16_t wallColor   = TFT_YELLOW;
+  uint16_t roofColor   = TFT_RED;
+  uint16_t doorColor   = TFT_BROWN;
   uint16_t windowColor = TFT_CYAN;
-  uint16_t frameColor = TFT_WHITE;
+  uint16_t frameColor  = TFT_WHITE;
 
   // Corpo casa
   tft.fillRect(x, y, width, height, wallColor);
@@ -115,7 +121,7 @@ void drawHouse(int x, int y) {
     int lineY = roofTopY + i;
     int lineWidth = (i * width) / roofHeight;
     int lineStartX = roofTopX - lineWidth / 2;
-    int lineEndX = roofTopX + lineWidth / 2;
+    int lineEndX   = roofTopX + lineWidth / 2;
     tft.drawLine(lineStartX, lineY, lineEndX, lineY, roofColor);
   }
 
@@ -136,81 +142,26 @@ void drawHouse(int x, int y) {
   tft.fillRect(leftWindowX, windowY, windowSize, windowSize, windowColor);
   tft.drawRect(leftWindowX, windowY, windowSize, windowSize, frameColor);
   tft.drawLine(leftWindowX + windowSize / 2, windowY,
-               leftWindowX + windowSize / 2, windowY + windowSize,
-               frameColor);
+               leftWindowX + windowSize / 2, windowY + windowSize, frameColor);
   tft.drawLine(leftWindowX, windowY + windowSize / 2,
-               leftWindowX + windowSize, windowY + windowSize / 2,
-               frameColor);
+               leftWindowX + windowSize, windowY + windowSize / 2, frameColor);
 
   int rightWindowX = x + width * 0.6;
   tft.fillRect(rightWindowX, windowY, windowSize, windowSize, windowColor);
   tft.drawRect(rightWindowX, windowY, windowSize, windowSize, frameColor);
   tft.drawLine(rightWindowX + windowSize / 2, windowY,
-               rightWindowX + windowSize / 2, windowY + windowSize,
-               frameColor);
+               rightWindowX + windowSize / 2, windowY + windowSize, frameColor);
   tft.drawLine(rightWindowX, windowY + windowSize / 2,
-               rightWindowX + windowSize, windowY + windowSize / 2,
-               frameColor);
+               rightWindowX + windowSize, windowY + windowSize / 2, frameColor);
 
   // Camino
-  int chimneyWidth = width * 0.1;
+  int chimneyWidth  = width * 0.1;
   int chimneyHeight = roofHeight * 0.6;
   int chimneyX = x + width * 0.75;
   int chimneyY = roofTopY + roofHeight * 0.3;
 
   tft.fillRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight, TFT_DARKGREY);
   tft.drawRect(chimneyX, chimneyY, chimneyWidth, chimneyHeight, frameColor);
-}
-
-void drawCaricamento(int cx, int cy, int num_giri) {
-  Serial.println("Pallini del caricamento ...");
-
-  uint16_t dotcolor = TFT_WHITE;
-  uint16_t sfondo = TFT_LIGHTGREY;
-  int raggio = 15;
-
-  tft.fillRect(cx - raggio, cy - raggio, 31, 31, sfondo);
-
-  for (int i = 0; i < num_giri; i++) {
-    for (int angolo = 0; angolo < 360; angolo += 40) {
-      float rad = angolo * PI / 180.0;
-      float rad_precedente = (angolo - 80) * PI / 180.0;
-
-      int x = cx + raggio * cos(rad);
-      int y = cy + raggio * sin(rad);
-      tft.fillCircle(x, y, 3, dotcolor);
-
-      int x_old = cx + raggio * cos(rad_precedente);
-      int y_old = cy + raggio * sin(rad_precedente);
-      tft.fillCircle(x_old, y_old, 3, sfondo);
-
-      delay(100);
-    }
-  }
-}
-
-void drawScrollBar(int x, int y, int h, int posizioni) {
-  int w = 25;
-  int arrowH = 25;
-  int trackH = h - (arrowH * 2);
-
-  tft.fillRect(x, y, w, h, TFT_DARKGREY);
-
-  // Freccia SU
-  if (posizioni == 0 || posizioni == 1) {
-    tft.fillTriangle(x + w / 2, y + 5, x + 5, y + arrowH - 5, x + w - 5,
-                     y + arrowH - 5, TFT_WHITE);
-  }
-
-  // Freccia GIÙ
-  int yb = y + h - arrowH;
-  if (posizioni == 0 || posizioni == 2) {
-    tft.fillTriangle(x + 5, yb + 5, x + w - 5, yb + 5, x + w / 2,
-                     yb + arrowH - 5, TFT_WHITE);
-  }
-
-  // Binario centrale
-  tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
 }
 
 void drawCalendarIcon(int cx, int cy, uint16_t color) {
@@ -288,6 +239,92 @@ void drawWeatherIcon(int cx, int cy) {
   tft.fillRect(nx, ny, 24, 8, TFT_WHITE);
 }
 
+
+
+// ============================================================================
+// WIDGET E UTILITÀ GUI
+// ============================================================================
+
+void drawCaricamento(int cx, int cy, int num_giri) {
+  Serial.println("Pallini del caricamento ...");
+
+  uint16_t dotcolor = TFT_WHITE;
+  uint16_t sfondo   = TFT_LIGHTGREY;
+  int raggio = 15;
+
+  tft.fillRect(cx - raggio, cy - raggio, 31, 31, sfondo);
+
+  for (int i = 0; i < num_giri; i++) {
+    for (int angolo = 0; angolo < 360; angolo += 40) {
+      float rad          = angolo * PI / 180.0;
+      float rad_precedente = (angolo - 80) * PI / 180.0;
+
+      int x = cx + raggio * cos(rad);
+      int y = cy + raggio * sin(rad);
+      tft.fillCircle(x, y, 3, dotcolor);
+
+      int x_old = cx + raggio * cos(rad_precedente);
+      int y_old = cy + raggio * sin(rad_precedente);
+      tft.fillCircle(x_old, y_old, 3, sfondo);
+
+      delay(100);
+    }
+  }
+}
+
+void drawScrollBar(int x, int y, int h, int posizioni) {
+  int w      = 25;
+  int arrowH = 25;
+  int trackH = h - (arrowH * 2);
+
+  tft.fillRect(x, y, w, h, TFT_DARKGREY);
+
+  // Freccia SU
+  if (posizioni == 0 || posizioni == 1) {
+    tft.fillTriangle(x + w / 2, y + 5,
+                     x + 5,     y + arrowH - 5,
+                     x + w - 5, y + arrowH - 5, TFT_WHITE);
+  }
+
+  // Freccia GIÙ
+  int yb = y + h - arrowH;
+  if (posizioni == 0 || posizioni == 2) {
+    tft.fillTriangle(x + 5,     yb + 5,
+                     x + w - 5, yb + 5,
+                     x + w / 2, yb + arrowH - 5, TFT_WHITE);
+  }
+
+  // Binario centrale
+  tft.fillRect(x + w / 3, y + arrowH, w / 3, trackH, TFT_BLACK);
+}
+
+void drawGradientBackground(uint16_t startColor, uint16_t endColor) {
+  // Scomposizione del colore di partenza (RGB565)
+  uint8_t r1 = (startColor >> 11) & 0x1F;
+  uint8_t g1 = (startColor >> 5)  & 0x3F;
+  uint8_t b1 =  startColor        & 0x1F;
+
+  // Scomposizione del colore di arrivo (RGB565)
+  uint8_t r2 = (endColor >> 11) & 0x1F;
+  uint8_t g2 = (endColor >> 5)  & 0x3F;
+  uint8_t b2 =  endColor        & 0x1F;
+
+  for (int y = 0; y < 320; y++) {
+    uint8_t r = r1 + (r2 - r1) * y / 319;
+    uint8_t g = g1 + (g2 - g1) * y / 319;
+    uint8_t b = b1 + (b2 - b1) * y / 319;
+
+    uint16_t color = (r << 11) | (g << 5) | b;
+    tft.drawFastHLine(0, y, 480, color);
+  }
+}
+
+
+
+// ============================================================================
+// SCHERMATA HOME E GRIGLIA PRINCIPALE
+// ============================================================================
+
 void disegnaHome() {
   tft.fillScreen(sfondo_page0);
   drawWiFiSymbol(400, 20);
@@ -303,10 +340,10 @@ void disegnaHome() {
 }
 
 void disegnaGrigliaHome() {
-  int cellW = 160;   // 480 / 3
-  int headerH = 70;  // spazio in alto per titolo/disegni
-  int gridH = 320 - headerH;
-  int cellH = gridH / 3;  // altezza di ogni riga della griglia
+  int cellW  = 160;         // 480 / 3
+  int headerH = 70;         // spazio in alto per titolo/disegni
+  int gridH   = 320 - headerH;
+  int cellH   = gridH / 3; // altezza di ogni riga della griglia
 
   drawHouse();
 
@@ -317,10 +354,8 @@ void disegnaGrigliaHome() {
       // row 0 = riga più in basso, row 2 = riga più in alto
       int y = headerH + (2 - row) * cellH;
 
-      // Disegna il bordo del rettangolo smussato
       tft.drawRoundRect(x + 5, y + 5, cellW - 10, cellH - 10, 10, TFT_DARKGREY);
 
-      // Testo al centro del quadrato
       tft.setTextColor(TFT_WHITE);
       tft.setTextSize(2);
       int textX = x + 20;
@@ -362,13 +397,13 @@ void disegnaGrigliaHome() {
         tft.print("work in progress");
       } else if (row == 2 && col == 0) {
         drawCalendarIcon(x + 62, y + 20, TFT_WHITE);
-        tft.setCursor(textX , textY + 18);
+        tft.setCursor(textX, textY + 18);
         tft.println("Calendario");
       } else if (row == 2 && col == 1) {
         drawTaskIcon(x + 62, y + 20, TFT_WHITE);
         tft.setCursor(textX + 35, textY + 18);
         tft.println("Task");
-      } else if (row == 2 && col == 2) {  // riga in alto, colonna destra
+      } else if (row == 2 && col == 2) {
         drawWeatherIcon(x + 60, y + 25);
         tft.setCursor(textX + 30, textY + 15);
         tft.println("Meteo");
@@ -377,29 +412,5 @@ void disegnaGrigliaHome() {
   }
 }
 
-void drawGradientBackground(uint16_t startColor, uint16_t endColor) {
-  // Scomposizione del colore di partenza (RGB565)
-  uint8_t r1 = (startColor >> 11) & 0x1F;
-  uint8_t g1 = (startColor >> 5) & 0x3F;
-  uint8_t b1 = startColor & 0x1F;
 
-  // Scomposizione del colore di arrivo (RGB565)
-  uint8_t r2 = (endColor >> 11) & 0x1F;
-  uint8_t g2 = (endColor >> 5) & 0x3F;
-  uint8_t b2 = endColor & 0x1F;
-
-  for (int y = 0; y < 320; y++) {
-    // Calcolo dell'interpolazione lineare per ogni canale
-    uint8_t r = r1 + (r2 - r1) * y / 319;
-    uint8_t g = g1 + (g2 - g1) * y / 319;
-    uint8_t b = b1 + (b2 - b1) * y / 319;
-
-    // Ricomposizione nel formato RGB565
-    uint16_t color = (r << 11) | (g << 5) | b;
-
-    // Disegna una linea orizzontale di quel colore
-    tft.drawFastHLine(0, y, 480, color);
-  }
-}
-
-#endif
+#endif // GUI_FUNCTIONS_H

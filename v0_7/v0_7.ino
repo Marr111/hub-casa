@@ -111,7 +111,6 @@ void setup() {
   // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
   fetchAndParseICal();
   printEvents();
-  tasksCount = 0;
   delay(200);
 
   // --- FASE 5: Completamento ---
