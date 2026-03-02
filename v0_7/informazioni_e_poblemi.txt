@@ -20,17 +20,51 @@ attenzione consigli tra parentesi generati con ai
           PROBLEMI IMPORTANTI
 =========================================
 -sensore temperatura e umidità non funziona
--
+       Problema: Manca la chiamata a sensors.requestTemperatures(); nel loop() o in una funzione dedicata, prima di leggere la temperatura.
+       Soluzione: Aggiungere sensors.requestTemperatures(); prima di leggere la temperatura con sensors.getTempCByIndex(0);
+
+- La calibrazione touch NON viene mai caricata all'accensione (Il vero motivo dei touch "invertiti")
+       Problema: Nel setup() non viene letto il file di calibrazione dallo SPIFFS e passato al display.
+       Soluzione: Aggiungere il codice nel setup() per leggere CALIBRATION_FILE e applicarlo con tft.setTouch(calData).
+
+- Il "Timeout Inattività" gela in modo permanente l'orologio
+       Problema: Il checkInactivity() non interrompe il loop del menu quando scatta il timeout, bloccando l'aggiornamento dell'ora.
+       Soluzione: Impostare un flag booleano globale al timeout e usare return o break nei loop in base a questo flag.
+
+-calendario provare a metterlo settimanale
+-to do list non funziona
+-corruzione di Memoria (Buffer Overflow) nella Calibrazione
+       Problema: Nel file touch_calibration.h hai l'array di dati passati al display: uint16_t calData[5]. Se per array abbiamo 5 elementi da 2 byte (totale: 10 byte), ma durante la scrittura del file di calibrazione dici al codice di salvare misteriosamente 14 byte (f.readBytes((char *)calData, 14) e scrittura equivalente). Stai scavalcando i limiti di quell'array distruggendo parte della memoria utile dell'ESP.
+       Suggerimento: Usa rigorosamente sizeof(calData) al posto di inserire manualmente quel numero 14.
+
+- Ricorsione infinita (La calibrazione touch nelle impostazioni non torna indietro)
+
+       Problema: Ecco da cosa deriva il tuo problema "nelle impostazioni non torna dove deve tornare". Quando premi il pulsante 3 in stato_scroll_bar1(), il codice esegue touch_calibrate(), e subito sotto un ennesimo richiamo ricorsivo a stato_scroll_bar1(). Cioè tu stai dicendo alla funzione Impostazioni 1 di ri-chiamare un clone di se stessa dall'interno. Quando l'utente premerà la "Casetta Home", fuggirà solo dal clone, tenendo il microcontrollore in trappola!
+       Suggerimento: Rimuovi l'ultima chiamata stato_scroll_bar1(); dal blocco del bottone calibrazione (riga 495 in logic_pages.h). Una volta eseguito il metodo, ritornerà naturalmente al ciclo while dal quale lo stavi già chiamando visualizzando automaticamente lo stato corretto!
+       logic_pages.h). Una volta eseguito il metodo, ritornerà naturalmente al ciclo while dal quale lo stavi già chiamando visualizzando automaticamente lo stato corretto!
 
 =========================================
        PROBLEMI MEDIAMENTE IMPORTANTI
 =========================================
 - Nelle impostazioni la calibrazione touch non torna dove deve tornare
+- Ricorsione infinita (La calibrazione touch nelle impostazioni non torna indietro)
+  Problema: In stato_scroll_bar1() c'è una chiamata ricorsiva a stato_scroll_bar1() dopo touch_calibrate().
+  Soluzione: Rimuovere l'ultima chiamata a stato_scroll_bar1() (riga 495 in logic_pages.h). Il codice ritornerà naturalmente al ciclo while.
+
 - Far capire quali sono le pagine "work in progress"
+  Soluzione: In disegnaGrigliaHome(), colorare il rettangolo con righe nere/arancioni (nastro cantiere) al posto di un piccolo testo. Bloccare il tocco per queste pagine per non aprire pagine temporanee.
+
+- Paginazione bloccata nella To-Do List
+  Problema: Non ci sono bottoni per scorrere le pagine in pageTask() se i task sono più di TASKS_PER_PAGE.
+  Soluzione: Aggiungere bottoni "Avanti" / "Indietro" per modificare la variabile pageIndex.
+
+- Dispendio di memoria RAM per il Calendario Google (.ics)
+  Problema: La lettura riga per riga del file iCal usa molte stringhe e accumula memoria frammentata.
+  Soluzione: Monitorare i crash e, se necessario, riscrivere il parsing per essere a livello di carattere singolo anziché stringhe.
 
 
 =========================================
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
-- Comando lampadina
+- pagina lampadina
 - Aggiungere nuove pagine 

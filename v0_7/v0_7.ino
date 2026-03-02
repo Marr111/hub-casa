@@ -67,9 +67,7 @@ static void dbgLog(const char* location, const char* message, int a = -1, int b 
 // SETUP
 // ============================================================================
 void setup() {
-  Serial.begin(
-    
-  );
+  Serial.begin(115200);
   delay(500);
   sensors.begin();  // Inizializza sensore KY-001 (DS18B20)
   Serial.println("✨ Inizializzazione ESP32-S3... ✨");
