@@ -133,17 +133,15 @@ time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly) {
   }
 }
 
-void fetchAndParseICal() {
-  WiFi.setSleep(false);            // disabilita il power saving WiFi — GRANDE impatto
-  now = time(nullptr);
+void fetchICalUrl(const char* url) {
   WiFiClientSecure *client = new WiFiClientSecure;
   client->setInsecure();
   HTTPClient http;
 
   http.setTimeout(10000);          // era default 5s, ma aumenta la banda
 
-  Serial.println("Scarico iCal...");
-  if (http.begin(*client, ICAL_URL)) {
+  Serial.printf("Scarico iCal da: %s\n", url);
+  if (http.begin(*client, url)) {
     http.addHeader("Accept-Encoding", "identity"); // disabilita gzip se non lo gestisci
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
@@ -159,9 +157,30 @@ void fetchAndParseICal() {
   delete client;
 }
 
-void parseICalStream(WiFiClient *stream) {
+void fetchAndParseICal() {
+  WiFi.setSleep(false);            // disabilita il power saving WiFi — GRANDE impatto
+  now = time(nullptr);
   eventsCount = 0;
   tasksCount = 0;
+
+  fetchICalUrl(ICAL_URL);
+#ifdef TASK_ICAL_URL
+  fetchICalUrl(TASK_ICAL_URL);
+#endif
+
+  // Ordina gli eventi in ordine cronologico (dal più vicino al più lontano)
+  for (int i = 0; i < eventsCount - 1; i++) {
+    for (int j = 0; j < eventsCount - i - 1; j++) {
+      if (events[j].start > events[j + 1].start) {
+        Event temp = events[j];
+        events[j] = events[j + 1];
+        events[j + 1] = temp;
+      }
+    }
+  }
+}
+
+void parseICalStream(WiFiClient *stream) {
   String lastLine = "";
   lastLine.reserve(512);
   bool inEvent = false;
@@ -205,17 +224,6 @@ void parseICalStream(WiFiClient *stream) {
     lastLine += leftover;
     processLine(lastLine, inEvent, curr, inTask, currTask);
   }
-
-  // Ordina gli eventi in ordine cronologico (dal più vicino al più lontano)
-  for (int i = 0; i < eventsCount - 1; i++) {
-    for (int j = 0; j < eventsCount - i - 1; j++) {
-      if (events[j].start > events[j + 1].start) {
-        Event temp = events[j];
-        events[j] = events[j + 1];
-        events[j + 1] = temp;
-      }
-    }
-  }
 }
 
 void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &currTask) {
@@ -247,6 +255,25 @@ void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &c
   } else if (key == "END") {
     if (value == "VEVENT") {
       inEvent = false;
+
+      // Se è un task (icona 🎯), lo aggiungiamo a tasks e lo saltiamo per events
+      if (curr.summary.indexOf("🎯") >= 0) {
+        if (tasksCount < MAX_TASKS) {
+          Task t;
+          String stripped = curr.summary;
+          int spaceIdx = stripped.indexOf(" ");
+          if (spaceIdx >= 0 && spaceIdx < 6) {
+            stripped = stripped.substring(spaceIdx + 1);
+          }
+          t.title = stripped;
+          t.title.trim();
+          t.done = false;
+          t.due = curr.start; 
+          tasks[tasksCount++] = t;
+        }
+        return; // Salta il resto del processing (non aggiungerlo a events)
+      }
+
       time_t limit = now + (31 * 24 * 60 * 60);
 
       if (curr.rruleWeekly) {
@@ -858,12 +885,17 @@ void printTasksTFT() {
   tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
   tft.setCursor(60, 11); tft.print("TO-DO LIST");
 
-  // Contatore completati
+  // Contatore completati + pagina attuale
   int done = 0;
   for (int i = 0; i < tasksCount; i++) if (tasks[i].done) done++;
+  int totalPages = (tasksCount + TASKS_PER_PAGE - 1) / TASKS_PER_PAGE;
+  if (totalPages < 1) totalPages = 1;
+
   tft.setTextSize(1); tft.setTextColor(0x07E0);
-  char prog[24]; sprintf(prog, "%d/%d completati", done, tasksCount);
-  tft.setCursor(350, 16); tft.print(prog);
+  char prog[32]; sprintf(prog, "%d/%d completati", done, tasksCount);
+  tft.setCursor(300, 10); tft.print(prog);
+  char pgLabel[16]; sprintf(pgLabel, "Pag %d/%d", pageIndex + 1, totalPages);
+  tft.setCursor(300, 22); tft.print(pgLabel);
 
   if (tasksCount == 0) {
     tft.setTextColor(0x7BCF); tft.setTextSize(2);
@@ -873,7 +905,7 @@ void printTasksTFT() {
 
   int y = 44;
   int start = pageIndex * TASKS_PER_PAGE;
-  for (int i = start; i < tasksCount && i < start + TASKS_PER_PAGE && y < 310; i++) {
+  for (int i = start; i < tasksCount && i < start + TASKS_PER_PAGE && y < 274; i++) {
     Task& t = tasks[i];
     int cH = 44;
 
@@ -884,12 +916,10 @@ void printTasksTFT() {
 
     // Checkbox (sinistra)
     if (t.done) {
-      // Segno di spunta verde
       tft.fillRoundRect(14, y+12, 18, 18, 3, 0x07E0);
       tft.setTextSize(1); tft.setTextColor(TFT_BLACK);
       tft.setCursor(18, y+16); tft.print("OK");
     } else {
-      // Quadratino vuoto
       tft.drawRoundRect(14, y+12, 18, 18, 3, TFT_WHITE);
     }
 
@@ -900,17 +930,37 @@ void printTasksTFT() {
     if (title.length() > 52) title = title.substring(0, 49) + "...";
     tft.setCursor(40, y + 10); tft.print(title);
 
-    // Data scadenza (se presente e futura)
-    time_t nowT = time(nullptr);
+    // Data scadenza (se presente)
     if (t.due != 0) {
       struct tm* td = localtime(&t.due);
       char buf[32]; strftime(buf, sizeof(buf), "Scade: %d/%m/%Y", td);
+      time_t nowT = time(nullptr);
       tft.setTextSize(1);
-      tft.setTextColor(t.due < nowT ? 0xF800 : 0xFD20); // rosso se scaduto, arancione altrimenti
+      tft.setTextColor(t.due < nowT ? 0xF800 : 0xFD20);
       tft.setCursor(40, y + 26); tft.print(buf);
     }
 
     y += cH + 4;
+  }
+
+  // ---- Barra di navigazione ----
+  tft.fillRect(0, 278, 480, 42, 0x1082);
+
+  bool hasPrev = (pageIndex > 0);
+  bool hasNext = ((pageIndex + 1) * TASKS_PER_PAGE < tasksCount);
+
+  // Pulsante PREV (◀ Prec) - lato sinistro
+  if (hasPrev) {
+    tft.fillRoundRect(6, 282, 110, 30, 6, 0x3186);
+    tft.setTextSize(1); tft.setTextColor(TFT_WHITE);
+    tft.setCursor(18, 292); tft.print("< Prec.");
+  }
+
+  // Pulsante NEXT (Succ ▶) - lato destro
+  if (hasNext) {
+    tft.fillRoundRect(364, 282, 110, 30, 6, 0x3186);
+    tft.setTextSize(1); tft.setTextColor(TFT_WHITE);
+    tft.setCursor(376, 292); tft.print("Succ. >");
   }
 }
 

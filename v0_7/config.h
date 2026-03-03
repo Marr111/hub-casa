@@ -69,6 +69,7 @@
 #define WIFI_PASSWORD "matteo123"
 #define NTP_SERVER "pool.ntp.org"
 #define ICAL_URL "https://calendar.google.com/calendar/ical/casettamatteo1%40gmail.com/public/basic.ics"
+#define TASK_ICAL_URL "https://calendar.google.com/calendar/ical/9ac14c3d4297d6ad64b570997cef84bfc32ef31aa598ec653d26d7edcac4b5a7%40group.calendar.google.com/public/basic.ics"
 
 // Timezone Italia
 #define GMT_OFFSET_SEC 3600
@@ -79,7 +80,7 @@
 // ============================================================================
 #define MAX_EVENTS 60
 #define MAX_TASKS 10
-#define TASKS_PER_PAGE 10
+#define TASKS_PER_PAGE 5
 #define INACTIVITY_TIMEOUT 30000  // 30 secondi in millisecondi
 
 // ============================================================================

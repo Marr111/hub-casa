@@ -230,6 +230,7 @@ void pageCalendario() {
 }
 
 void pageTask() {
+  pageIndex = 0;  // Sempre dalla prima pagina quando si entra
   printTasksTFT();
   delay(300);
 
@@ -238,15 +239,41 @@ void pageTask() {
     checkInactivity();
     if (!tft.getTouch(&x, &y)) { delay(10); continue; }
     lastActivity = millis();
-    if (x < 60 && y > 260) {  // Casa → home
+
+    // Casetta → home (angolo alto-sinistra: touch x<60 && y>260 con Y invertita)
+    if (x < 60 && y > 260) {
       waitRelease();
+      pageIndex = 0;
       page = 0;
       disegnaHome();
       return;
     }
+
+    // Barra navigazione (y < 40 con Y invertita = area in basso allo schermo)
+    if (y < 40) {
+      bool hasNext = ((pageIndex + 1) * TASKS_PER_PAGE < tasksCount);
+      bool hasPrev = (pageIndex > 0);
+
+      // Pulsante SUCC (destra: touch x > 340)
+      if (hasNext && x > 340) {
+        waitRelease();
+        pageIndex++;
+        printTasksTFT();
+        continue;
+      }
+      // Pulsante PREC (sinistra: touch x < 140)
+      if (hasPrev && x < 140) {
+        waitRelease();
+        pageIndex--;
+        printTasksTFT();
+        continue;
+      }
+    }
+
     delay(10);
   }
 }
+
 
 void page3() {
   page = 3;
