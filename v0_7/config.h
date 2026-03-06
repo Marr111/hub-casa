@@ -79,7 +79,7 @@
 // LIMITI E COSTANTI
 // ============================================================================
 #define MAX_EVENTS 60
-#define MAX_TASKS 10
+#define MAX_TASKS 50
 #define TASKS_PER_PAGE 5
 #define INACTIVITY_TIMEOUT 30000  // 30 secondi in millisecondi
 
