@@ -66,5 +66,10 @@ attenzione consigli tra parentesi generati con ai
 =========================================
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
-- pagina lampadina
-- Aggiungere nuove pagine 
+- Aggiungere nuove pagine : 
+  - pagina lampadina
+  - pagina musica
+  - pagina qualità dell'aria
+  - pagina timer???
+  - pagina Cornice Fotografia / Salvaschermo
+  - pagina orari pullman in tempo reale (https://gpa.madbob.org/query.php?stop=numero_fermata)
