@@ -119,8 +119,8 @@ void pageprincipale() {
         break;
       case 4:
         page = 4;
-        dbgLog("logic_pages.h:pageprincipale", "go.page4", row, col, page, 0);
-        page4();
+        dbgLog("logic_pages.h:pageprincipale", "go.pageBus", row, col, page, 0);
+        pageBus();
         running = false;
         break;
       case 5:

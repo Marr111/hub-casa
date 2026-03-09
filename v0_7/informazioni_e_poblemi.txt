@@ -31,8 +31,10 @@ attenzione consigli tra parentesi generati con ai
        Problema: Il checkInactivity() non interrompe il loop del menu quando scatta il timeout, bloccando l'aggiornamento dell'ora.
        Soluzione: Impostare un flag booleano globale al timeout e usare return o break nei loop in base a questo flag.
 
--calendario provare a metterlo settimanale
 -to do list non funziona
+
+-non funziona la home nella pagina calendario
+
 -corruzione di Memoria (Buffer Overflow) nella Calibrazione
        Problema: Nel file touch_calibration.h hai l'array di dati passati al display: uint16_t calData[5]. Se per array abbiamo 5 elementi da 2 byte (totale: 10 byte), ma durante la scrittura del file di calibrazione dici al codice di salvare misteriosamente 14 byte (f.readBytes((char *)calData, 14) e scrittura equivalente). Stai scavalcando i limiti di quell'array distruggendo parte della memoria utile dell'ESP.
        Suggerimento: Usa rigorosamente sizeof(calData) al posto di inserire manualmente quel numero 14.

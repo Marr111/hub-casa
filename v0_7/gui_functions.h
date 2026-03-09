@@ -378,11 +378,19 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX - 10, textY + 15);
         tft.println("Impostazioni");
       } else if (row == 1 && col == 0) {
-        tft.setCursor(textX, textY - 6);
-        tft.setTextSize(2); tft.println("Pagina 4");
-        tft.setTextSize(1); tft.setTextColor(TFT_WHITE);
-        tft.setCursor(textX, textY + 14);
-        tft.print("work in progress");
+        // Tragitto pullman / metro
+        // Disegna icona bus semplice (corpo)
+        int bx = x + 60, by = y + 18;
+        tft.drawRoundRect(bx, by, 38, 20, 3, TFT_WHITE);
+        tft.fillRect(bx + 4,  by + 4, 7, 8, TFT_WHITE);
+        tft.fillRect(bx + 14, by + 4, 7, 8, TFT_WHITE);
+        tft.fillRect(bx + 24, by + 4, 7, 8, TFT_WHITE);
+        tft.fillCircle(bx + 8,  by + 20, 4, TFT_WHITE);
+        tft.fillCircle(bx + 28, by + 20, 4, TFT_WHITE);
+        tft.fillRect(bx + 34, by + 12, 4, 4, TFT_YELLOW);
+        tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
+        tft.setCursor(textX + 16, textY + 18);
+        tft.println("Pullman");
       } else if (row == 1 && col == 1) {
         tft.setCursor(textX, textY - 6);
         tft.setTextSize(2); tft.println("Pagina 5");

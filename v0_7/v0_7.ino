@@ -59,6 +59,7 @@ static void dbgLog(const char* location, const char* message, int a = -1, int b 
 // INCLUDE DEI MODULI (DOPO le definizioni delle variabili!)
 // ============================================================================
 #include "gui_functions.h"
+#include "bus_schedule.h"
 #include "logic_pages.h"
 #include "network_time.h"
 #include "touch_calibration.h"
@@ -109,8 +110,8 @@ void setup() {
   // --- FASE 4:Lettura Calendario ---
   updateLoadingScreen(80, "Lettura Calendario...");
   // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
-  fetchAndParseICal();
-  printEvents();
+  //fetchAndParseICal();
+  //printEvents();
   delay(200);
 
   // --- FASE 5: Completamento ---

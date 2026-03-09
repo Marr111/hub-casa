@@ -47,6 +47,7 @@
 #define sfondo_page6 TFT_CYAN
 #define sfondo_page7 TFT_MAGENTA
 #define sfondo_pageImpostazioni TFT_DARKGREY
+#define sfondo_pageBus 0x000F   // blu notte
 
 #define COLOR_ARROW TFT_WHITE
 #define COLOR_BG 0x0841
@@ -227,7 +228,7 @@ void pageprincipale();
 void pageCalendario();
 void pageTask();
 void page3();
-void page4();
+void pageBus();
 void page5();
 void page6();
 void page7();
