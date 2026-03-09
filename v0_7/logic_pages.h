@@ -43,6 +43,8 @@ void waitRelease() {
 }
 
 void pageprincipale() {
+  page = 10;
+  lastActivity = millis();
   // sfondo gradiente: da Blu scuro/Nero petrolio al Blu acciaio/Grigio azzurro
   drawGradientBackground(0x1926, 0x4B92);
   dbgLog("logic_pages.h:pageprincipale", "enter", page, 0, 0, 0);
@@ -57,8 +59,12 @@ void pageprincipale() {
   
   bool running = true;
   while (running) {
+    checkInactivity();
+    if (page == 0) return;
+
     uint16_t x, y;
     if (!tft.getTouch(&x, &y)) {
+      delay(10);
       continue;
     }
     lastActivity = millis();
@@ -435,6 +441,7 @@ void pageImpostazioni() {
 
   esci_dal_loop = 1;
   while (esci_dal_loop == 1) {
+    checkInactivity();
     if (page == 0) break;
 
     if (stato_scroll_bar == 1)
@@ -532,7 +539,7 @@ void stato_scroll_bar1() {
         Serial.println("calibrazione touch");
         drawCaricamento(415, 190, 2);
         touch_calibrate();
-        stato_scroll_bar1();
+        // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
       }
       //aggiornamento codice
       else if (tp.x > 410 && tp.x < 430 && tp.y > 50 && tp.y < 100){
@@ -544,7 +551,7 @@ void stato_scroll_bar1() {
             performOTAUpdate(); // Rimuovi questa riga se vuoi aggiornamento manuale
           }
         }
-        stato_scroll_bar1();
+        // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
       } else if (tp.x < 60 && tp.y > 260) {  // ritorno alla home (touch Y invertito)
         page = 0;
         esci_dal_loop = 0;

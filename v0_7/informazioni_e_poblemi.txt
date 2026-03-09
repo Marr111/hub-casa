@@ -49,6 +49,7 @@ attenzione consigli tra parentesi generati con ai
        PROBLEMI MEDIAMENTE IMPORTANTI
 =========================================
 - Nelle impostazioni la calibrazione touch non torna dove deve tornare
+
 - Ricorsione infinita (La calibrazione touch nelle impostazioni non torna indietro)
   Problema: In stato_scroll_bar1() c'è una chiamata ricorsiva a stato_scroll_bar1() dopo touch_calibrate().
   Soluzione: Rimuovere l'ultima chiamata a stato_scroll_bar1() (riga 495 in logic_pages.h). Il codice ritornerà naturalmente al ciclo while.
@@ -68,10 +69,19 @@ attenzione consigli tra parentesi generati con ai
 =========================================
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
+- Pagine da aggiungere alle impostazioni:
+       - informazioni sul dispositivo --> modello esp e schermo, tempo di attivita
 - Aggiungere nuove pagine : 
   - pagina lampadina
   - pagina musica
   - pagina qualità dell'aria
-  - pagina timer???
+  - pagina timer
   - pagina Cornice Fotografia / Salvaschermo
-  - pagina orari pullman in tempo reale (https://gpa.madbob.org/query.php?stop=numero_fermata)
+
+
+============================================================
+       COSE DA CONTROLLARE PERCHè CORRETTE/AGGIUNTE
+============================================================
+- pagina orari pullman in tempo reale (https://gpa.madbob.org/query.php?stop=numero_fermata)
+- check inactivity in pageprincipale
+- calibrazione touch da impostazioni
