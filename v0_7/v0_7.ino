@@ -35,25 +35,7 @@ float roomHum  = 0.0f;
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
-// #region agent log
-static void dbgLog(const char* location, const char* message, int a = -1, int b = -1, int c = -1, int d = -1) {
-  unsigned long ts = millis();
-  Serial.print("[DBG] t=");
-  Serial.print(ts);
-  Serial.print(" loc=");
-  Serial.print(location);
-  Serial.print(" msg=");
-  Serial.print(message);
-  Serial.print(" a=");
-  Serial.print(a);
-  Serial.print(" b=");
-  Serial.print(b);
-  Serial.print(" c=");
-  Serial.print(c);
-  Serial.print(" d=");
-  Serial.println(d);
-}
-// #endregion
+
 
 // ============================================================================
 // INCLUDE DEI MODULI (DOPO le definizioni delle variabili!)
@@ -121,7 +103,6 @@ void setup() {
 
   page = 0;
   disegnaHome();
-  dbgLog("v0_7.ino:setup", "home.drawn", page, 0, 0, 0);
 }
 
 // ============================================================================
@@ -148,15 +129,11 @@ void loop() {
 
   uint16_t x, y;//touch
   if (tft.getTouch(&x, &y)) {
-    dbgLog("v0_7.ino:loop", "touch", x, y, page, 0);
     if (x > 400 && y > 260) {  // Area Ingranaggio (touch Y invertito: y alto = display top)
-      Serial.println("Apertura Impostazioni");
       delay(200);  // Debounce
       page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare, altrimenti la guard if(page==0) esce subito
-      dbgLog("v0_7.ino:loop", "go.settings", x, y, page, 0);
       pageImpostazioni();
     } else {
-      dbgLog("v0_7.ino:loop", "go.pageprincipale", x, y, page, 0);
       pageprincipale();
     }
   }

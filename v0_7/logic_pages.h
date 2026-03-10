@@ -47,7 +47,6 @@ void pageprincipale() {
   lastActivity = millis();
   // sfondo gradiente: da Blu scuro/Nero petrolio al Blu acciaio/Grigio azzurro
   drawGradientBackground(0x1926, 0x4B92);
-  dbgLog("logic_pages.h:pageprincipale", "enter", page, 0, 0, 0);
 
   // Disegna la griglia da cui scegliere le pagine
   disegnaGrigliaHome();
@@ -68,13 +67,10 @@ void pageprincipale() {
       continue;
     }
     lastActivity = millis();
-    dbgLog("logic_pages.h:pageprincipale", "touch", x, y, 0, 0);
-
     // Tasto HOME (angolo in alto a sinistra)
     if (x < 60 && y > 236) {
       waitRelease();
       page = 0;
-      dbgLog("logic_pages.h:pageprincipale", "go.home", x, y, page, 0);
       disegnaHome();
       break;
     }
@@ -88,7 +84,6 @@ void pageprincipale() {
     int row = 0;
 
     if (y < 70) {
-      dbgLog("logic_pages.h:pageprincipale", "grid.header", y, col, 0, 0);
       row = 2; // parte sotto dello schermo
     } else if (y < 153) {
       row = 1;
@@ -98,7 +93,6 @@ void pageprincipale() {
       continue;
     }
 
-    dbgLog("logic_pages.h:pageprincipale", "grid", row, col, 0, 0);
     // Indice 1..9: 1 in basso a sinistra, 9 in alto a destra
     int idx = row * 3 + col + 1;
 
@@ -107,61 +101,50 @@ void pageprincipale() {
     switch (idx) {
       case 1:
         page = 1;
-        dbgLog("logic_pages.h:pageprincipale", "go.pageCalendario", row, col, page, 0);
         pageCalendario();
         running = false;
         break;
       case 2:
         page = 2;
-        dbgLog("logic_pages.h:pageprincipale", "go.pageTask", row, col, page, 0);
         pageTask();
         running = false;
         break;
       case 3:
         page = 3;
-        dbgLog("logic_pages.h:pageprincipale", "go.page3", row, col, page, 0);
         page3();
         running = false;
         break;
       case 4:
         page = 4;
-        dbgLog("logic_pages.h:pageprincipale", "go.pageBus", row, col, page, 0);
         pageBus();
         running = false;
         break;
       case 5:
         page = 5;
-        dbgLog("logic_pages.h:pageprincipale", "go.page5", row, col, page, 0);
         page5();
         running = false;
         break;
       case 6:
         page = 6;
-        dbgLog("logic_pages.h:pageprincipale", "go.page6", row, col, page, 0);
         page6();
         running = false;
         break;
       case 7:
         page = 7;
-        dbgLog("logic_pages.h:pageprincipale", "go.page7", row, col, page, 0);
         page7();
         running = false;
         break;
       case 8:
         page = 8;
-        dbgLog("logic_pages.h:pageprincipale", "go.page8", row, col, page, 0);
         page8();
         running = false;
         break;
       case 9:
         page = 9;
-        dbgLog("logic_pages.h:pageprincipale", "go.settings", row, col, page, 0);
         pageImpostazioni();
         running = false;
         break;
       default:
-        // Non dovrebbe mai capitare perché row/col sono limitati
-        dbgLog("logic_pages.h:pageprincipale", "idx.unexpected", idx, row, col, 0);
         break;
     }
   }
@@ -482,6 +465,97 @@ void checkInactivity() {
 }
 
 // ============================================================================
+// PAGINA INFO DISPOSITIVO
+// ============================================================================
+
+void pageInfoDispositivo() {
+  // Sfondo scuro
+  tft.fillScreen(0x0820);
+
+  // Titolo centrato
+  tft.setTextColor(TFT_CYAN);
+  tft.setTextSize(3);
+  tft.drawCentreString("Info Dispositivo", 240, 15, 1);
+
+  tft.drawFastHLine(0, 52, 480, TFT_DARKGREY);
+
+  // --- Chip ---
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(20, 66);
+  tft.println("Chip");
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(20, 90);
+  tft.print("Modello: "); tft.println("ESP32-S3");
+  tft.setCursor(20, 112);
+  tft.print("Frequenza: "); tft.print(ESP.getCpuFreqMHz()); tft.println(" MHz");
+  tft.setCursor(20, 134);
+  tft.print("Flash: "); tft.print(ESP.getFlashChipSize() / 1024 / 1024); tft.println(" MB");
+  tft.setCursor(20, 156);
+  tft.print("RAM libera: "); tft.print(ESP.getFreeHeap() / 1024); tft.println(" KB");
+
+  tft.drawFastHLine(0, 178, 480, TFT_DARKGREY);
+
+  // --- Schermo ---
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(20, 188);
+  tft.println("Schermo");
+  tft.setTextColor(TFT_WHITE);
+  tft.setCursor(20, 210);
+  tft.println("Driver: ST7796 (TFT_eSPI)");
+  tft.setCursor(20, 232);
+  tft.println("Risoluzione: 480 x 320");
+
+  tft.drawFastHLine(0, 254, 480, TFT_DARKGREY);
+
+  // --- Uptime (aggiornato in loop) ---
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_YELLOW);
+  tft.setCursor(20, 264);
+  tft.println("Uptime");
+
+  // Casetta home (angolo in alto a sinistra)
+  drawHouse(5, 20);
+
+  // Loop: aggiorna l'uptime ogni secondo e aspetta tocco
+  unsigned long lastDraw = 0;
+  while (true) {
+    checkInactivity();
+    if (page == 0) return;
+
+    // Ridisegna uptime ogni secondo
+    if (millis() - lastDraw >= 1000) {
+      lastDraw = millis();
+      unsigned long sec  = millis() / 1000;
+      unsigned long mins = sec / 60;
+      unsigned long hrs  = mins / 60;
+      unsigned long days = hrs / 24;
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%lud %02lu:%02lu:%02lu ", days, hrs % 24, mins % 60, sec % 60);
+      tft.fillRect(20, 284, 350, 16, 0x0820);
+      tft.setTextColor(TFT_WHITE, 0x0820);
+      tft.setTextSize(2);
+      tft.setCursor(20, 284);
+      tft.print(buf);
+    }
+
+    uint16_t tx, ty;
+    if (tft.getTouch(&tx, &ty)) {
+      lastActivity = millis();
+      // Casetta → home (angolo in alto a sinistra: touch x piccolo, y grande per Y invertito)
+      if (tx < 60 && ty > 260) {
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
+      }
+    }
+    delay(20);
+  }
+}
+
+// ============================================================================
 // STATI SCROLL BAR
 // ============================================================================
 
@@ -507,7 +581,8 @@ void stato_scroll_bar1() {
   tft.println("4 Agg. codice");
   drawCircleWithDot(415, 240, 15);
   tft.setCursor(30, 280);
-  tft.println("5");
+  tft.println("5 Info dispositivo");
+  drawCircleWithDot(415, 290, 15);
 
   while (stato_scroll_bar == 1) {
     stato_scroll_bar = touchMenu(stato_scroll_bar);
@@ -555,6 +630,12 @@ void stato_scroll_bar1() {
       } else if (tp.x < 60 && tp.y > 260) {  // ritorno alla home (touch Y invertito)
         page = 0;
         esci_dal_loop = 0;
+        return;
+      }
+      // Info dispositivo (pulsante 5, y display ~280-300 → touch y ~20-40)
+      else if (tp.x > 410 && tp.x < 430 && tp.y > 10 && tp.y < 50) {
+        pageInfoDispositivo();
+        // Al ritorno ridisegna lo stato corrente
         return;
       }
     }
