@@ -93,7 +93,8 @@ void setup() {
   updateLoadingScreen(80, "Lettura Calendario...");
   // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
   //fetchAndParseICal();
-  //printEvents();
+  printEvents();
+  printTasks();
   delay(200);
 
   // --- FASE 5: Completamento ---

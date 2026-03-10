@@ -29,7 +29,7 @@ void touch_calibrate() {
     } else {
       File f = SPIFFS.open(CALIBRATION_FILE, "r");
       if (f) {
-        if (f.readBytes((char *)calData, 14) == 14)
+        if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData))
           calDataOK = 1;
         f.close();
       }
@@ -61,7 +61,7 @@ void touch_calibrate() {
   // Salva calibrazione
   File f = SPIFFS.open(CALIBRATION_FILE, "w");
   if (f) {
-    f.write((const unsigned char *)calData, 14);
+    f.write((const unsigned char *)calData, sizeof(calData));
     f.close();
     Serial.println("Calibrazione salvata");
   }

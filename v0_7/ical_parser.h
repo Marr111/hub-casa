@@ -110,49 +110,100 @@ void fetchAndParseICal() {
 }
 
 void parseICalStream(WiFiClient *stream) {
-  String lastLine = "";
-  lastLine.reserve(512);
+  // -----------------------------------------------------------------------
+  // Lettura carattere per carattere in un buffer fisso sullo stack.
+  // Nessuna String Arduino viene allocata sull'heap in questo loop:
+  // questo elimina la frammentazione della RAM durante il parsing.
+  // -----------------------------------------------------------------------
+  static char lineBuf[512];  // riga corrente (logica, dopo unfolding)
+  int lineLen = 0;
+
+  static char rawBuf[256];   // riga raw letta dal socket (prima dell'unfolding)
+  int rawLen = 0;
+
   bool inEvent = false;
   Event curr;
   bool inTask = false;
   Task currTask;
 
-  const size_t CHUNK = 1024;
-  uint8_t buf[CHUNK];
-  String leftover = "";
+  // Per gestire l'unfolding iCal (righe che iniziano con SPACE/TAB
+  // sono continuazione della riga precedente) dobbiamo tenere la riga
+  // logica in lineBuf e processarla solo quando arriva la *prossima* riga
+  // che non inizia con spazio.
+  bool haveLogical = false;  // c'è una riga logica in attesa in lineBuf
+
+  auto flushLogical = [&]() {
+    if (haveLogical && lineLen > 0) {
+      lineBuf[lineLen] = '\0';
+      // Converti in String solo qui, una volta per riga logica
+      String s(lineBuf);
+      processLine(s, inEvent, curr, inTask, currTask);
+      lineLen = 0;
+    }
+    haveLogical = false;
+  };
 
   while (stream->connected() || stream->available()) {
-    if (stream->available()) {
-      size_t len = stream->readBytes(buf, min((size_t)stream->available(), CHUNK));
-      String chunk = leftover + String((char*)buf).substring(0, len);
-      leftover = "";
-      
-      int start = 0;
-      int nl;
-      while ((nl = chunk.indexOf('\n', start)) >= 0) {
-        String raw = chunk.substring(start, nl);
-        raw.replace("\r", "");
-        start = nl + 1;
-        
-        if (raw.length() > 0) {
-          if (raw[0] == ' ' || raw[0] == '\t') {
-            lastLine += raw.substring(1);
-          } else {
-            if (lastLine.length() > 0) processLine(lastLine, inEvent, curr, inTask, currTask);
-            lastLine = raw;
-          }
+    if (!stream->available()) { delay(1); continue; }
+
+    int c = stream->read();
+    if (c < 0) continue;
+
+    if (c == '\r') continue;  // ignora CR
+
+    if (c == '\n') {
+      // Fine riga raw
+      rawBuf[rawLen] = '\0';
+
+      if (rawLen == 0) {
+        // Riga vuota: non fa nulla
+      } else if (rawBuf[0] == ' ' || rawBuf[0] == '\t') {
+        // Continuazione iCal: appendi al buffer logico (senza lo spazio iniziale)
+        const char* cont = rawBuf + 1;
+        int contLen = rawLen - 1;
+        if (lineLen + contLen < (int)sizeof(lineBuf) - 1) {
+          memcpy(lineBuf + lineLen, cont, contLen);
+          lineLen += contLen;
         }
+      } else {
+        // Nuova riga fisica → flush di quella logica precedente
+        flushLogical();
+        // Inizia nuova riga logica
+        int copyLen = min(rawLen, (int)sizeof(lineBuf) - 1);
+        memcpy(lineBuf, rawBuf, copyLen);
+        lineLen = copyLen;
+        haveLogical = true;
       }
-      leftover = chunk.substring(start);
+      rawLen = 0;
     } else {
-      delay(1);
+      // Accumula nel buffer raw
+      if (rawLen < (int)sizeof(rawBuf) - 1) {
+        rawBuf[rawLen++] = (char)c;
+      }
+      // Se la raw buffer è piena senza newline, scartiamo il resto
     }
   }
-  // flush
-  if (leftover.length() > 0 || lastLine.length() > 0) {
-    lastLine += leftover;
-    processLine(lastLine, inEvent, curr, inTask, currTask);
+
+  // Flush finale
+  if (rawLen > 0) {
+    rawBuf[rawLen] = '\0';
+    if (rawBuf[0] != ' ' && rawBuf[0] != '\t') {
+      flushLogical();
+      int copyLen = min(rawLen, (int)sizeof(lineBuf) - 1);
+      memcpy(lineBuf, rawBuf, copyLen);
+      lineLen = copyLen;
+      haveLogical = true;
+    } else {
+      // continuazione dell'ultima riga
+      const char* cont = rawBuf + 1;
+      int contLen = rawLen - 1;
+      if (lineLen + contLen < (int)sizeof(lineBuf) - 1) {
+        memcpy(lineBuf + lineLen, cont, contLen);
+        lineLen += contLen;
+      }
+    }
   }
+  flushLogical();
 }
 
 void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &currTask) {
@@ -187,7 +238,16 @@ void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &c
 
       // Se è un task (icona 🎯), lo aggiungiamo a tasks e lo saltiamo per events
       if (curr.summary.indexOf("🎯") >= 0) {
-        if (tasksCount < MAX_TASKS) {
+        // Filtro: solo task con start OGGI
+        time_t now_t2 = time(nullptr);
+        struct tm *lt2 = localtime(&now_t2);
+        struct tm tm0 = *lt2;
+        tm0.tm_hour = 0; tm0.tm_min = 0; tm0.tm_sec = 0; tm0.tm_isdst = -1;
+        time_t todayStart2 = mktime(&tm0);
+        time_t todayEnd2   = todayStart2 + 86400;
+        bool isToday = (curr.start >= todayStart2 && curr.start < todayEnd2);
+
+        if (isToday && tasksCount < MAX_TASKS) {
           Task t;
           String stripped = curr.summary;
           int spaceIdx = stripped.indexOf(" ");
@@ -197,8 +257,14 @@ void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &c
           t.title = stripped;
           t.title.trim();
           t.done = false;
-          t.due = curr.start; 
-          tasks[tasksCount++] = t;
+          t.due = curr.start;
+
+          // Deduplicazione: non aggiungere se esiste già un task con lo stesso titolo
+          bool duplicate = false;
+          for (int di = 0; di < tasksCount; di++) {
+            if (tasks[di].title == t.title) { duplicate = true; break; }
+          }
+          if (!duplicate) tasks[tasksCount++] = t;
         }
         return; // Salta il resto del processing (non aggiungerlo a events)
       }
@@ -229,7 +295,22 @@ void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &c
     } else if (value == "VTODO") {
       inTask = false;
       if (tasksCount < MAX_TASKS) {
-        tasks[tasksCount++] = currTask;
+        // Filtra: solo task con scadenza OGGI (o senza scadenza)
+        bool keep = true;
+        if (currTask.due != 0) {
+          // Calcola la mezzanotte di oggi e di domani in ora locale
+          time_t now_t = time(nullptr);
+          struct tm *lt = localtime(&now_t);
+          struct tm todayMidnight = *lt;
+          todayMidnight.tm_hour = 0;
+          todayMidnight.tm_min  = 0;
+          todayMidnight.tm_sec  = 0;
+          todayMidnight.tm_isdst = -1;
+          time_t todayStart = mktime(&todayMidnight);
+          time_t todayEnd   = todayStart + 86400;
+          keep = (currTask.due >= todayStart && currTask.due < todayEnd);
+        }
+        if (keep) tasks[tasksCount++] = currTask;
       }
     }
   } else if (inEvent) {
@@ -326,5 +407,22 @@ void printEvents() {
     }
   }
 }
+
+void printTasks() {
+  Serial.println("=== Task ===");
+  for (int i = 0; i < tasksCount; i++) {
+    Task &t = tasks[i];
+    Serial.printf("--- Task %d ---\n", i + 1);
+    Serial.printf("TITOLO: %s\n", t.title.c_str());
+    Serial.printf("STATO:  %s\n", t.done ? "Completato" : "In corso");
+    if (t.due != 0) {
+      struct tm *tm = localtime(&t.due);
+      char buf[64];
+      strftime(buf, sizeof(buf), "%Y-%m-%d", tm);
+      Serial.printf("DUE:    %s\n", buf);
+    }
+  }
+}
+
 
 #endif // ICAL_PARSER_H

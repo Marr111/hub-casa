@@ -88,7 +88,7 @@
 // SINCRONIZZAZIONE CODICE
 // ============================================================================
 const char* FIRMWARE_VERSION = "1.0"; // La tua versione attuale
-const char* VERSION_CHECK_URL = "https://raw.githubusercontent.com/TUO_USERNAME/TUA_REPO/main/version.json";
+const char* VERSION_CHECK_URL = "https://raw.githubusercontent.com/Marr111/hub-casa/main/version.json";
 
 String availableVersion = "";
 String downloadURL = "";
