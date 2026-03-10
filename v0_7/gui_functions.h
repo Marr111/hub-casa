@@ -339,29 +339,12 @@ void disegnaHome() {
   tft.println("Premi per proseguire");
 }
 
-// Disegna nastro cantiere (righe diagonali nere/arancioni) in un rettangolo
-void drawConstructionTape(int rx, int ry, int rw, int rh) {
-  int stripeW = 8;  // larghezza delle strisce diagonali
-  for (int i = -rh; i < rw + rh; i += stripeW * 2) {
-    // Disegna una striscia arancione diagonale
-    for (int s = 0; s < stripeW; s++) {
-      int x1 = rx + i + s;
-      int y1 = ry;
-      int x2 = x1 - rh;
-      int y2 = ry + rh;
-      // Clipping manuale
-      if (x1 >= rx && x1 < rx + rw) {
-        // Linea intera o parziale
-        int cx1 = max(x1, rx);
-        int cx2 = max(x2, rx);
-        cx1 = min(cx1, rx + rw - 1);
-        cx2 = min(cx2, rx + rw - 1);
-        tft.drawLine(cx1, y1, cx2, y2, TFT_ORANGE);
-      }
-    }
-  }
-  // Bordo
-  tft.drawRect(rx, ry, rw, rh, TFT_ORANGE);
+// Disegna icona generica per pagina vuota / in costruzione
+void drawWipIcon(int cx, int cy, uint16_t color) {
+  // Icona "+" o attrezzo stilizzato, oppure un semplice plus in un cerchio tratteggiato
+  tft.drawCircle(cx, cy, 18, color);
+  tft.fillRect(cx - 8, cy - 2, 16, 4, color);
+  tft.fillRect(cx - 2, cy - 8, 4, 16, color);
 }
 
 void disegnaGrigliaHome() {
@@ -387,17 +370,15 @@ void disegnaGrigliaHome() {
       int textY = y + cellH / 2;
 
       if (row == 0 && col == 0) {
-        drawConstructionTape(x + 6, y + 6, cellW - 12, cellH - 12);
-        tft.setTextColor(TFT_BLACK);
-        tft.setTextSize(1);
-        tft.setCursor(textX + 20, textY + 4);
-        tft.print("Pagina 7");
+        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
+        tft.setTextColor(TFT_LIGHTGREY);
+        tft.setCursor(textX, textY + 15);
+        tft.println("Pagina 7");
       } else if (row == 0 && col == 1) {
-        tft.setCursor(textX, textY - 6);
+        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
+        tft.setTextColor(TFT_LIGHTGREY);
+        tft.setCursor(textX, textY + 15);
         tft.println("Pagina 8");
-        tft.setTextSize(1); tft.setTextColor(TFT_WHITE);
-        tft.setCursor(textX, textY + 14);
-        tft.print("work in progress");
       } else if (row == 0 && col == 2) {
         drawGearIcon(x + 80, y + 30, COLOR_CARD);
         tft.setCursor(textX - 10, textY + 15);
@@ -417,17 +398,15 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX + 16, textY + 18);
         tft.println("Pullman");
       } else if (row == 1 && col == 1) {
-        drawConstructionTape(x + 6, y + 6, cellW - 12, cellH - 12);
-        tft.setTextColor(TFT_BLACK);
-        tft.setTextSize(1);
-        tft.setCursor(textX + 20, textY + 4);
-        tft.print("Pagina 5");
+        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
+        tft.setTextColor(TFT_LIGHTGREY);
+        tft.setCursor(textX, textY + 15);
+        tft.println("Pagina 5");
       } else if (row == 1 && col == 2) {
-        drawConstructionTape(x + 6, y + 6, cellW - 12, cellH - 12);
-        tft.setTextColor(TFT_BLACK);
-        tft.setTextSize(1);
-        tft.setCursor(textX + 20, textY + 4);
-        tft.print("Pagina 6");
+        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
+        tft.setTextColor(TFT_LIGHTGREY);
+        tft.setCursor(textX, textY + 15);
+        tft.println("Pagina 6");
       } else if (row == 2 && col == 0) {
         drawCalendarIcon(x + 62, y + 20, TFT_WHITE);
         tft.setCursor(textX, textY + 18);

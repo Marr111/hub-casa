@@ -38,8 +38,6 @@ attenzione consigli tra parentesi generati con ai
   Problema: Il sensore DS18B20 (KY-001) misura solo la temperatura, non l'umidità. La variabile roomHum resta sempre a 0.0 e sullo schermo viene mostrato "--%".
   Soluzione: Rimuovere la visualizzazione dell'umidità della stanza, oppure aggiungere un sensore DHT11/DHT22/BME280 che la supporta.
 
-- Far capire quali sono le pagine "work in progress"
-  Soluzione: In disegnaGrigliaHome(), colorare il rettangolo con righe nere/arancioni (nastro cantiere) al posto di un piccolo testo. Bloccare il tocco per queste pagine per non aprire pagine temporanee.
 =========================================
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
