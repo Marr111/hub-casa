@@ -1,6 +1,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include "secrets.h"  // Credenziali WiFi, URL calendario, OTA — NON pushare secrets.h!
+
 // ============================================================================
 // LIBRERIE
 // ============================================================================
@@ -66,11 +68,9 @@
 // ============================================================================
 // CONFIGURAZIONE RETE
 // ============================================================================
-#define WIFI_SSID "A25 di Matteo"
-#define WIFI_PASSWORD "matteo123"
+// WIFI_SSID, WIFI_PASSWORD, ICAL_URL, TASK_ICAL_URL, VERSION_CHECK_URL
+// sono definiti in secrets.h (non pushato su GitHub).
 #define NTP_SERVER "pool.ntp.org"
-#define ICAL_URL "https://calendar.google.com/calendar/ical/casettamatteo1%40gmail.com/public/basic.ics"
-#define TASK_ICAL_URL "https://calendar.google.com/calendar/ical/9ac14c3d4297d6ad64b570997cef84bfc32ef31aa598ec653d26d7edcac4b5a7%40group.calendar.google.com/public/basic.ics"
 
 // Timezone Italia
 #define GMT_OFFSET_SEC 3600
@@ -88,7 +88,7 @@
 // SINCRONIZZAZIONE CODICE
 // ============================================================================
 const char* FIRMWARE_VERSION = "1.0"; // La tua versione attuale
-const char* VERSION_CHECK_URL = "https://raw.githubusercontent.com/Marr111/hub-casa/main/version.json";
+// VERSION_CHECK_URL è definito in secrets.h
 
 String availableVersion = "";
 String downloadURL = "";

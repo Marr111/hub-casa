@@ -34,7 +34,7 @@ attenzione consigli tra parentesi generati con ai
   Problema: Nello switch della griglia home, il case 4 chiama pageBus() (pullman), ma esiste una funzione page4() per la lampadina RGB che non viene mai chiamata da nessuna parte.
   Soluzione: Decidere se assegnare pageBus() a un indice diverso oppure rimuovere page4().
 
-- roomHum è sempre "--%" nella pagina meteo
+- roomHum è sempre "--%"" nella pagina meteo
   Problema: Il sensore DS18B20 (KY-001) misura solo la temperatura, non l'umidità. La variabile roomHum resta sempre a 0.0 e sullo schermo viene mostrato "--%".
   Soluzione: Rimuovere la visualizzazione dell'umidità della stanza, oppure aggiungere un sensore DHT11/DHT22/BME280 che la supporta.
 
@@ -55,3 +55,544 @@ attenzione consigli tra parentesi generati con ai
 ============================================================
 - pagina orari pullman in tempo reale (https://gpa.madbob.org/query.php?stop=numero_fermata)
 - calibrazione touch da impostazioni
+
+
+================================================================================
+================================================================================
+     ANALISI COMPLETA DEL CODICE - 21 Aprile 2026
+     Problemi, Vulnerabilità di Sicurezza, Bug e Suggerimenti
+================================================================================
+================================================================================
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  1. VULNERABILITÀ DI SICUREZZA  (CRITICHE)                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────────────────────────────────────────────────────────────────────────────
+1.2  EMAIL GOOGLE IN CHIARO NELL'URL iCal (config.h, riga 72-73)
+────────────────────────────────────────────────────────────────────────────────
+   File: config.h
+   Codice: #define ICAL_URL "https://calendar.google.com/calendar/ical/casettamatteo1%40gmail.com/..."
+   
+   Problema: L'indirizzo email personale è visibile nel codice sorgente pubblico.
+             Chiunque può accedere al calendario pubblico e vedere tutti i tuoi eventi.
+   
+   Rischio: MEDIO — Privacy compromessa, possibile phishing/spam.
+   
+   Soluzione: Spostare anche gli URL dei calendari in "secrets.h" + .gitignore
+
+────────────────────────────────────────────────────────────────────────────────
+1.3  OTA UPDATE SENZA VERIFICA DI INTEGRITÀ (ota_update.h)
+────────────────────────────────────────────────────────────────────────────────
+   File: ota_update.h, righe 56-96
+   
+   Problema: Il firmware viene scaricato e flashato SENZA verificare:
+     - Nessun controllo di checksum (SHA256/MD5)
+     - Nessuna firma digitale del firmware
+     - Il version.json è scaricato da GitHub via HTTPS ma senza verifica del certificato
+     - downloadURL potrebbe essere manipolata (man-in-the-middle)
+   
+   Rischio: CRITICO — Un attaccante potrebbe iniettare firmware malevolo.
+             Se l'URL viene cambiato nel repo o si viene reindirizzati, 
+             il dispositivo flasherebbe codice arbitrario.
+   
+   Soluzione:
+     - Aggiungere un campo "sha256" nel version.json e verificarlo dopo il download
+     - Usare WiFiClientSecure con verifica del certificato (non setInsecure())
+     - Aggiungere un timeout di sicurezza durante il download
+
+────────────────────────────────────────────────────────────────────────────────
+1.4  setInsecure() — NESSUNA VERIFICA CERTIFICATO TLS (bus_schedule.h, ical_parser.h)
+────────────────────────────────────────────────────────────────────────────────
+   File: bus_schedule.h riga 155, ical_parser.h riga 67
+   Codice: client->setInsecure();
+   
+   Problema: Disabilita completamente la verifica del certificato SSL/TLS.
+             Qualsiasi attaccante sulla rete può intercettare o manipolare
+             le comunicazioni HTTPS (attacco Man-in-the-Middle).
+   
+   Rischio: ALTO — Dati intercettabili, possibile iniezione di dati falsi
+             (orari bus falsi, eventi calendario manipolati, firmware malevolo).
+   
+   Soluzione:
+     - Usare certificati root CA con esp_crt_bundle_attach()
+     - Oppure pinnare il certificato specifico del server
+     - Come minimo, documentare il rischio accettato
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  2. BUG LOGICI E FUNZIONALI                                                ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────────────────────────────────────────────────────────────────────────────
+2.1  pageBus() imposta page=4 ma la griglia usa idx=5 per i bus (bus_schedule.h, riga 452)
+────────────────────────────────────────────────────────────────────────────────
+   File: bus_schedule.h riga 452 → page = 4
+   File: logic_pages.h riga 123-124 → case 5: pageBus()
+   
+   Problema: pageBus() imposta page=4, ma la griglia la chiama con case 5.
+             Il while(page==4) dentro pageBus() funziona, ma page4() 
+             (lampadina RGB, case 4) usa ANCHE page=4.
+             Se pageBus() viene interrotta e page4() viene chiamata, 
+             ci sarebbe una collisione sullo stato "page==4".
+   
+   Soluzione: Assegnare numeri di pagina unici e coerenti a ogni funzione.
+             pageBus() dovrebbe usare page=5 (che corrisponde al suo case).
+
+────────────────────────────────────────────────────────────────────────────────
+2.2  page8() usa sfondo_page7 invece di sfondo_page8 (logic_pages.h, riga 387-389)
+────────────────────────────────────────────────────────────────────────────────
+   File: logic_pages.h, righe 387-389
+   Codice: tft.fillScreen(sfondo_page7);
+           tft.setTextColor(TFT_WHITE, sfondo_page7);
+   
+   Problema: page8() utilizza sfondo_page7 come colore di sfondo.
+             Non esiste un #define sfondo_page8. Probabilmente un copia-incolla.
+   
+   Soluzione: Aggiungere #define sfondo_page8 in config.h e usarlo in page8().
+
+────────────────────────────────────────────────────────────────────────────────
+2.3  fetchAndParseICal() è commentata nel setup (v0_7.ino, riga 96)
+────────────────────────────────────────────────────────────────────────────────
+   File: v0_7.ino, riga 96
+   Codice: //fetchAndParseICal();
+   
+   Problema: Il caricamento del calendario è disabilitato. Questo significa che
+             eventsCount e tasksCount restano a 0. La vista calendario sarà
+             sempre vuota, e printEvents()/printTasks() non stamperanno nulla.
+   
+   Nota: Il commento dice "per far eseguire più velocemente il codice" ma
+         questo rompe tutta la funzionalità calendario/task del dispositivo.
+
+────────────────────────────────────────────────────────────────────────────────
+2.4  Il loop() principale aggiorna l'orologio SOLO sulla pagina home (v0_7.ino, righe 121-129)
+────────────────────────────────────────────────────────────────────────────────
+   File: v0_7.ino, righe 121-129
+   
+   Problema: tft.setTextColor(TFT_WHITE, sfondo_page0) e i setCursor fissi
+             disegnano ora e data sempre nella stessa posizione con sfondo blu.
+             Se l'utente è su un'altra pagina (page != 0), queste scritte
+             vengono disegnate sopra il contenuto della pagina attiva,
+             corrompendo l'interfaccia.
+   
+   Soluzione: Aggiungere un guard "if (page == 0)" prima del blocco di disegno
+              dell'orologio nel loop().
+
+────────────────────────────────────────────────────────────────────────────────
+2.5  Configurazione NTP doppia e potenzialmente in conflitto (v0_7.ino, riga 84 vs 88-90)
+────────────────────────────────────────────────────────────────────────────────
+   File: v0_7.ino, righe 84 e 88-90
+   File: net_wifi_time.h, riga 38
+   
+   Problema: connessioneNTP() chiama configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, ...)
+             che è il metodo "semplice" per ESP32. Ma subito dopo, setup() chiama
+             setenv("TZ", "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00", 1) + tzset().
+             I due metodi possono confliggere: configTime con offset fissi vs
+             la variabile TZ con regole DST complete.
+   
+   Soluzione: Usare SOLO setenv/tzset (è il metodo più corretto) e chiamare
+              configTime(0, 0, NTP_SERVER) senza offset, lasciando che
+              la timezone venga gestita dalla variabile TZ.
+
+────────────────────────────────────────────────────────────────────────────────
+2.6  DynamicJsonDocument deprecato (weather.h, bus_schedule.h, ota_update.h)
+────────────────────────────────────────────────────────────────────────────────
+   File: weather.h riga 120, bus_schedule.h riga 181, ota_update.h riga 42
+   
+   Problema: DynamicJsonDocument è stato deprecato in ArduinoJson v7.
+             Se si aggiorna la libreria, il codice non compilerà più.
+   
+   Soluzione: Usare JsonDocument (senza dimensione fissa) se si usa ArduinoJson v7,
+              oppure fissare la versione della libreria a v6.x nel progetto.
+
+────────────────────────────────────────────────────────────────────────────────
+2.7  Nessun aggiornamento periodico del calendario (runtime)
+────────────────────────────────────────────────────────────────────────────────
+   Problema: Gli eventi e task vengono scaricati UNA sola volta nel setup().
+             Se il dispositivo resta acceso per giorni, il calendario non si
+             aggiorna mai. Gli eventi passati restano in memoria e quelli nuovi
+             non vengono mai caricati.
+   
+   Soluzione: Implementare un refresh periodico (es. ogni 30 minuti o 1 ora)
+              chiamando fetchAndParseICal() dal loop() con un timer.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  3. PROBLEMI DI MEMORIA E STABILITÀ                                        ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────────────────────────────────────────────────────────────────────────────
+3.1  Memory leak in fetchICalUrl() (ical_parser.h, riga 66)
+────────────────────────────────────────────────────────────────────────────────
+   File: ical_parser.h, riga 66
+   Codice: WiFiClientSecure *client = new WiFiClientSecure;
+   
+   Problema: Se http.begin() fallisce (riga 73), il "delete client" alla riga 86
+             viene comunque eseguito, ma se avviene un'eccezione o crash prima,
+             il client non viene liberato. Più importante: se fetchICalUrl() viene
+             chiamata più volte (2 URL in fetchAndParseICal), ogni chiamata alloca
+             e dealloca ~50KB di heap per il client SSL, causando frammentazione.
+   
+   Soluzione: Usare un client sullo stack, oppure riutilizzare un unico client
+              per entrambe le chiamate.
+
+────────────────────────────────────────────────────────────────────────────────
+3.2  String Arduino usate in modo eccessivo → frammentazione heap
+────────────────────────────────────────────────────────────────────────────────
+   File: Tutti (specialmente ical_parser.h, weather.h, net_wifi_time.h)
+   
+   Problema: Il codice fa un uso massiccio di String Arduino (allocazione dinamica).
+             Su ESP32 con heap limitato (circa 300KB), operazioni come:
+             - http.getString() (weather.h riga 115) → alloca l'INTERO body in RAM
+             - Concatenazioni String in processLine() → riallocazioni continue
+             - getTime() e getDateLong() ritornano String ad ogni chiamata nel loop()
+             
+             Questo causa frammentazione della heap nel tempo e potenziali crash
+             per out-of-memory dopo ore/giorni di funzionamento.
+   
+   Soluzione:
+     - Usare buffer char[] fissi dove possibile
+     - Per getTime() e getDateLong(), usare buffer statici
+     - Per il JSON meteo, usare http.getStream() e deserializeJson() dallo stream
+
+────────────────────────────────────────────────────────────────────────────────
+3.3  Buffer statici in parseICalStream possono creare problemi (ical_parser.h, righe 118-121)
+────────────────────────────────────────────────────────────────────────────────
+   File: ical_parser.h, righe 118-121
+   Codice: static char lineBuf[512];
+           static char rawBuf[256];
+   
+   Problema: Questi buffer sono "static" il che significa che persistono tra le
+             chiamate. Se parseICalStream viene chiamata in modo rientrante 
+             (improbabile ma possibile in futuro), ci sarebbero conflitti.
+             Inoltre, 512+256 bytes restano permanentemente occupati nella RAM
+             anche quando non servono.
+   
+   Soluzione: Rimuovere "static" e metterli come variabili locali normali (sullo stack).
+
+────────────────────────────────────────────────────────────────────────────────
+3.4  Variabili globali definite in config.h (violazione ODR)
+────────────────────────────────────────────────────────────────────────────────
+   File: config.h, righe 90-97
+   Codice: const char* FIRMWARE_VERSION = "1.0";
+           String availableVersion = "";
+           String downloadURL = "";
+           bool updateAvailable = false;
+           unsigned long lastVersionCheck = 0;
+           const unsigned long VERSION_CHECK_INTERVAL = 86400000;
+   
+   Problema: Queste variabili NON-const (availableVersion, downloadURL, ecc.)
+             sono DEFINITE nell'header. Se config.h viene incluso da più file .cpp,
+             ci saranno definizioni multiple → errore del linker (ODR violation).
+             Attualmente funziona solo perché tutto è negli .h inclusi in sequenza
+             dal .ino, ma è fragile e non standard.
+   
+   Soluzione: Dichiarare come "extern" in config.h e definirle nel .ino.
+
+────────────────────────────────────────────────────────────────────────────────
+3.5  Implementazioni di funzioni negli header → multiple definition
+────────────────────────────────────────────────────────────────────────────────
+   File: TUTTI i file .h
+   
+   Problema: Tutti i file .h contengono implementazioni di funzioni (non solo
+             dichiarazioni). Questo è un anti-pattern: se mai si aggiungesse
+             un secondo file .cpp che include config.h, si avrebbero errori
+             di "multiple definition" per ogni funzione.
+   
+   Soluzione: A lungo termine, spostare le implementazioni in file .cpp separati
+              e tenere solo i prototipi negli .h. Per Arduino questo funziona
+              ancora, ma è una cattiva pratica che limita la scalabilità.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  4. PROBLEMI DI ROBUSTEZZA E EDGE CASES                                    ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────────────────────────────────────────────────────────────────────────────
+4.1  Nessun timeout nel loop di waitRelease() (logic_pages.h, riga 36-43)
+────────────────────────────────────────────────────────────────────────────────
+   File: logic_pages.h, righe 36-43
+   Codice: while (tft.getTouch(&x, &y)) { ... delay(10); }
+   
+   Problema: Se il touchscreen si blocca in stato "premuto" (glitch hardware,
+             acqua sullo schermo, ecc.), waitRelease() non esce MAI.
+             L'intero dispositivo si blocca in un loop infinito.
+   
+   Soluzione: Aggiungere un timeout (es. 5 secondi massimo di attesa).
+
+────────────────────────────────────────────────────────────────────────────────
+4.2  test_touch() ha un while(1) senza timeout (touch_calibration.h, riga 114)
+────────────────────────────────────────────────────────────────────────────────
+   File: touch_calibration.h, riga 114
+   Codice: while (1) { ... }
+   
+   Problema: Il test touch non ha un timeout di inattività. Se nessuno tocca
+             lo schermo, resta bloccato per sempre. Non chiama checkInactivity().
+   
+   Soluzione: Aggiungere checkInactivity() o un timeout nel loop.
+
+────────────────────────────────────────────────────────────────────────────────
+4.3  pageInfoDispositivo() ha while(true) senza uscita garantita (logic_pages.h, riga 523)
+────────────────────────────────────────────────────────────────────────────────
+   File: logic_pages.h, riga 523
+   Codice: while (true) { ... }
+   
+   Problema: La funzione dipende da checkInactivity() per uscire, ma se per
+             qualche motivo page non viene mai impostato a 0, il loop è infinito.
+             Inoltre, pageInfoDispositivo() non è raggiungibile dal menu principale
+             (griglia home), solo dalle impostazioni scroll bar 1.
+   
+   Soluzione: Usare while(page == X) come le altre pagine.
+
+────────────────────────────────────────────────────────────────────────────────
+4.4  WiFi.setSleep(false) non viene mai ripristinato (ical_parser.h, riga 90)
+────────────────────────────────────────────────────────────────────────────────
+   File: ical_parser.h, riga 90
+   Codice: WiFi.setSleep(false);
+   
+   Problema: Il power saving WiFi viene disabilitato ma MAI riabilitato.
+             Questo aumenta il consumo energetico del dispositivo per sempre,
+             anche quando non sta scaricando dati.
+   
+   Soluzione: Chiamare WiFi.setSleep(true) alla fine di fetchAndParseICal().
+
+────────────────────────────────────────────────────────────────────────────────
+4.5  Nessuna gestione del caso "WiFi disconnesso" durante il funzionamento
+────────────────────────────────────────────────────────────────────────────────
+   Problema: Se il WiFi si disconnette dopo il setup (es. router spento),
+             il dispositivo non tenta mai di riconnettersi automaticamente.
+             Le funzioni che richiedono WiFi (meteo, bus, OTA) falliranno
+             silenziosamente senza notificare l'utente sullo schermo.
+   
+   Soluzione:
+     - Aggiungere un check periodico nel loop(): if(WiFi.status() != WL_CONNECTED)
+     - Tentare riconnessione automatica
+     - Mostrare l'icona WiFi in rosso nella home quando disconnesso
+
+────────────────────────────────────────────────────────────────────────────────
+4.6  sprintf senza controllo di overflow (vari file)
+────────────────────────────────────────────────────────────────────────────────
+   File: calendar_month.h riga 47, 82, 113
+         calendar_week.h riga 89, 93, 171, 194
+         logic_pages.h riga 535
+         net_wifi_time.h riga 63
+   
+   Problema: Viene usato sprintf con buffer piccoli senza snprintf.
+             Esempio: char ds[3]; sprintf(ds,"%d",d); — se d>=100 (impossibile
+             per un giorno, ma per altri casi simili potrebbe essere pericoloso).
+             char hdr[32]; sprintf(hdr, "%s %d", mN[month-1], year); — "SETTEMBRE 2026"
+             è 15 caratteri, ma nomi più lunghi o anni diversi potrebbero
+             avvicinarsi al limite.
+   
+   Soluzione: Usare snprintf(buf, sizeof(buf), ...) ovunque per sicurezza.
+
+────────────────────────────────────────────────────────────────────────────────
+4.7  Festività mobili mancanti (bus_schedule.h, righe 43-67)
+────────────────────────────────────────────────────────────────────────────────
+   File: bus_schedule.h, righe 43-67
+   
+   Problema: La funzione isFestivo() controlla solo le festività fisse italiane.
+             Mancano le festività MOBILI:
+             - Pasqua (e Lunedì dell'Angelo / Pasquetta)
+             - Festa del Patrono locale (es. 24 giugno per Torino, San Giovanni)
+   
+   Soluzione: Implementare il calcolo della Pasqua (algoritmo di Gauss/Meeus)
+              e aggiungere il patrono locale.
+
+────────────────────────────────────────────────────────────────────────────────
+4.8  sscanf su hour del bus senza validazione (bus_schedule.h, riga 317)
+────────────────────────────────────────────────────────────────────────────────
+   File: bus_schedule.h, riga 317
+   Codice: sscanf(deps[i].hour, "%d:%d", &bH, &bM);
+   
+   Problema: Se il formato dell'API cambia o il campo "hour" è vuoto/malformato,
+             sscanf non parserà correttamente e bH/bM resteranno a 0,
+             causando calcoli errati senza nessun avviso.
+   
+   Soluzione: Controllare il valore di ritorno di sscanf (deve essere == 2).
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  5. PROBLEMI DI ARCHITETTURA E MANUTENIBILITÀ                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────────────────────────────────────────────────────────────────────────────
+5.1  Codice morto e funzioni non raggiungibili
+────────────────────────────────────────────────────────────────────────────────
+   - page4() (lampadina RGB): mai chiamata, collide con pageBus() (entrambe page=4)
+   - page5(): esiste ma non fa nulla di utile (solo titolo e casetta)
+   - page6(), page7(), page8(): placeholder vuoti, occupano spazio
+   - printEventsTFT(): marcata come "Legacy stub", mai chiamata dal flusso attuale
+   - switchPage(): dichiarata in config.h riga 247 ma MAI definita → errore linker
+     se qualcuno la chiama
+   - cambio_pagina(): dichiarata in config.h riga 239, mai definita
+   - printEventsTFT(): dichiarata in config.h riga 199, è legacy
+   - drawWeekView(): funziona ma include il filtro 30 giorni hardcoded
+   
+   Soluzione: Rimuovere le funzioni non usate o implementarle. Rimuovere le
+              dichiarazioni di funzioni che non esistono.
+
+────────────────────────────────────────────────────────────────────────────────
+5.2  Numeri magici ovunque
+────────────────────────────────────────────────────────────────────────────────
+   Problema: Coordinate, dimensioni, colori e timeout sono numeri scritti
+             direttamente nel codice senza costanti con nome:
+             - if (x < 60 && y > 260) → cosa è 60? cosa è 260?
+             - delay(200), delay(300), delay(500) → valori diversi di debounce
+             - 0x1082, 0x0821, 0x18E3, 0x0228 → colori senza nome
+   
+   Soluzione: Definire costanti con nomi descrittivi:
+             #define HOME_BTN_X_MAX 60
+             #define HOME_BTN_Y_MIN 260
+             #define DEBOUNCE_MS 200
+
+────────────────────────────────────────────────────────────────────────────────
+5.3  Uso massiccio di delay() bloccanti
+────────────────────────────────────────────────────────────────────────────────
+   Problema: delay() ferma TUTTO il processore. Non possono arrivare interrupt,
+             aggiornamenti, o input touch durante i delay. Usati in:
+             - setup(): delay(200) × 4 + delay(1000) = ~2 secondi sprecati
+             - drawCaricamento(): delay(100) in loop = animazione bloccante
+             - Vari delay(300), delay(500) come debounce
+   
+   Soluzione: Usare millis() per il timing non bloccante e macchine a stati.
+
+────────────────────────────────────────────────────────────────────────────────
+5.4  Extern dichiarato DUE volte per le stesse variabili
+────────────────────────────────────────────────────────────────────────────────
+   File: config.h riga 155-156, e anche riga 224-225
+   Codice: extern int page;     (dichiarato 2 volte in config.h)
+           extern int lastPage; (dichiarato 2 volte in config.h)
+   
+   File: logic_pages.h riga 154
+   Codice: extern int eventiPageIndex; (già dichiarato nel .ino)
+   
+   Problema: Dichiarazioni duplicate, confusione su dove sia il "proprietario"
+             della variabile.
+   
+   Soluzione: Consolidare tutte le dichiarazioni extern in un solo punto di config.h.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  6. PROBLEMI SPECIFICI PER FILE                                             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+────────── config.h ──────────
+- Riga 23: ST7796_DRIVER definito ma probabilmente già nel User_Setup.h di TFT_eSPI.
+  Se ridefinito causa warning.
+- Riga 76-77: GMT_OFFSET_SEC e DAYLIGHT_OFFSET_SEC sono usati da configTime ma 
+  poi vengono sovrascritti da setenv("TZ",...) → uno dei due è superfluo.
+
+────────── v0_7.ino ──────────
+- Riga 34: roomHum è dichiarata e inizializzata a 0.0 ma il sensore KY-001 non
+  la supporta. Variabile inutile che occupa memoria.
+- Riga 97: printEvents()/printTasks() chiamati PRIMA di fetchAndParseICal()
+  (che è commentato). Se venisse decommentato, l'ordine sarebbe sbagliato:
+  bisogna chiamare fetch PRIMA di print.
+- Riga 134: L'area touch dell'ingranaggio (x>400 && y>260) potrebbe sovrapporsi 
+  con la zona home button in altre pagine (x<60 && y>260). Non c'è problema perché
+  x>400 e x<60 sono mutualmente esclusivi, ma i magic numbers rendono fragile il tutto.
+
+────────── gui_functions.h ──────────
+- Riga 22-28: drawWiFiSymbol usa cos/sin con angoli in gradi convertiti pixel per pixel.
+  Molto lento su ESP32 (nessuna FPU per trigonometria). Disegna ~90 pixel uno per uno.
+- Riga 252-253: drawCaricamento usa "sfondo" come nome variabile locale ma non ha
+  nessuna relazione con "sfondo_page0" globale → confusione di naming.
+
+────────── weather.h ──────────
+- Riga 212: Il check "roomTemp == 0.0f && roomHum == 0.0f" per decidere se mostrare
+  "--" è sbagliato: se la temperatura reale È 0°C (inverno!), mostrerebbe "--"
+  anche con un dato valido.
+  Soluzione: Usare una flag booleana "sensorReady" oppure NAN come valore di default.
+- Riga 221: Mostra "--%"" in ENTRAMBI i rami dell'if → il ramo else è inutile.
+
+────────── ical_parser.h ──────────
+- Riga 46-56: Il calcolo manuale di timegm() è rischioso. Non gestisce secondi
+  intercalari e potrebbe avere problemi con date molto lontane.
+- Riga 272: time_t limit = now + (31 * 24 * 60 * 60) → "now" è aggiornato solo
+  nel setup(). Se il dispositivo resta acceso per giorni, il "limit" è vecchio.
+
+────────── touch_calibration.h ──────────
+- Riga 38: calDataOK è impostato ma MAI letto dopo riga 48. 
+  Non viene usato per decidere se calibrare o meno → la calibrazione avviene SEMPRE
+  anche se i dati validi esistono già (quando REPEAT_CAL è false MA il file esiste).
+  Il codice legge il file, imposta calDataOK=1, e poi procede a calibrare comunque.
+  
+  Soluzione: Aggiungere "if (calDataOK) { tft.setTouch(calData); return; }"
+
+────────── bus_schedule.h ──────────
+- Riga 36: festivoManuale è static → non può essere modificata dall'esterno.
+  Ma pageBus() la imposta direttamente perché è nello stesso translation unit.
+  Se mai si separano i file, questa variabile non sarà accessibile.
+- Riga 113-114: festivoManuale viene usata per decidere feriale/festivo nella metro,
+  ma il valore iniziale di isFestivo() potrebbe non corrispondere alla scelta
+  dell'utente se cambia il badge. OK come design attuale, ma fragile.
+
+────────── logic_pages.h ──────────
+- Righe 562-643 (stato_scroll_bar1): La funzione è molto lunga (~80 righe) e mescola
+  logica touch con disegno GUI. Difficile da mantenere e debuggare.
+- Riga 630: Il ritorno alla home da stato_scroll_bar1 imposta page=0 e esci_dal_loop=0
+  MA non chiama disegnaHome(). La home viene ridisegnata solo dal codice in 
+  pageImpostazioni() dopo il break dal while. Se però page viene cambiato da
+  checkInactivity(), potrebbe non ridisegnarsi correttamente.
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  7. RIEPILOGO PRIORITÀ                                                      ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  PRIORITÀ CRITICA (da risolvere subito):
+  ────────────────────────────────────────
+  [!] Credenziali WiFi in chiaro nel repo pubblico (config.h)
+  [!] Email personale visibile nel repo (config.h)  
+  [!] OTA update senza verifica di integrità (ota_update.h)
+  [!] fetchAndParseICal() commentato → calendario non funziona (v0_7.ino)
+  [!] Loop orologio disegna su tutte le pagine (v0_7.ino)
+
+  PRIORITÀ ALTA (da risolvere presto):
+  ───────────────────────────────────────
+  [!] setInsecure() disabilita tutta la sicurezza TLS
+  [!] pageBus() usa page=4 → collisione con page4()
+  [!] Nessuna riconnessione WiFi automatica
+  [!] switchPage() e cambio_pagina() dichiarate ma mai definite
+  [!] touch_calibrate() non rispetta calDataOK → ricalibra sempre
+
+  PRIORITÀ MEDIA (da risolvere nel tempo):
+  ─────────────────────────────────────────
+  [ ] page8 usa sfondo sbagliato (sfondo_page7)
+  [ ] Nessun aggiornamento periodico del calendario
+  [ ] Bug temperatura 0°C mostrata come "--" nel meteo
+  [ ] Memory leak potenziale in fetchICalUrl
+  [ ] WiFi.setSleep(false) mai ripristinato
+  [ ] Festività mobili mancanti (Pasqua, patrono)
+  [ ] DynamicJsonDocument deprecato
+
+  PRIORITÀ BASSA (miglioramenti futuri):
+  ───────────────────────────────────────
+  [ ] Sostituire String Arduino con buffer char[] statici
+  [ ] Eliminare numeri magici (usare #define)
+  [ ] Refactoring: spostare implementazioni da .h a .cpp
+  [ ] Eliminare codice morto (page5-8 vuote, printEventsTFT legacy)
+  [ ] Sostituire delay() bloccanti con millis()
+  [ ] Implementare timeout in waitRelease() e test_touch()
+
+
+╔══════════════════════════════════════════════════════════════════════════════╗
+║  8. NOTE FINALI                                                              ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+  Numero totale problemi trovati: 35+
+  
+  Di cui:
+   - 4 vulnerabilità di sicurezza
+   - 7 bug logici/funzionali
+   - 5 problemi di memoria/stabilità
+   - 8 problemi di robustezza
+   - 4 problemi di architettura
+   - 7+ problemi specifici per file
+
+  Il progetto funziona nel suo stato attuale ma ha diverse fragilità che
+  potrebbero causare crash dopo ore di utilizzo (frammentazione heap) e
+  presenta rischi di sicurezza significativi, soprattutto per il repo pubblico
+  con credenziali in chiaro e per l'OTA update non verificato.
