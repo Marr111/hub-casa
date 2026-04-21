@@ -138,15 +138,9 @@ attenzione consigli tra parentesi generati con ai
 ────────────────────────────────────────────────────────────────────────────────
 
 ────────────────────────────────────────────────────────────────────────────────
-2.7  Nessun aggiornamento periodico del calendario (runtime)
+- [RISOLTO] 2.7  Nessun aggiornamento periodico del calendario (runtime)
+  Implementato: Scommentato fetchAndParseICal() nel setup() e aggiunto refresh ogni 30 minuti nel loop().
 ────────────────────────────────────────────────────────────────────────────────
-   Problema: Gli eventi e task vengono scaricati UNA sola volta nel setup().
-             Se il dispositivo resta acceso per giorni, il calendario non si
-             aggiorna mai. Gli eventi passati restano in memoria e quelli nuovi
-             non vengono mai caricati.
-   
-   Soluzione: Implementare un refresh periodico (es. ogni 30 minuti o 1 ora)
-              chiamando fetchAndParseICal() dal loop() con un timer.
 
 
 ╔══════════════════════════════════════════════════════════════════════════════╗

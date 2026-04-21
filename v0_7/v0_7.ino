@@ -92,8 +92,7 @@ void setup() {
 
   // --- FASE 4:Lettura Calendario ---
   updateLoadingScreen(80, "Lettura Calendario...");
-  // commentati per far eseguire piu velocemente il codice -- per la versine finale togliere commenti
-  //fetchAndParseICal();
+  fetchAndParseICal();
   printEvents();
   printTasks();
   delay(200);
@@ -101,7 +100,7 @@ void setup() {
   // --- FASE 5: Completamento ---
   updateLoadingScreen(100, "Avvio completato!");
   Serial.println("🚀 Setup completato!");
-  delay(1000);  // Lascia leggere all'utente "Completato"
+  delay(1000);  
 
   page = 0;
   disegnaHome();
@@ -111,6 +110,17 @@ void setup() {
 // LOOP PRINCIPALE
 // ============================================================================
 void loop() {
+  // Aggiornamento periodico del calendario (ogni 30 minuti = 1800000 ms)
+  static unsigned long lastCalendarUpdate = millis();
+  if (millis() - lastCalendarUpdate > 1800000) {
+    lastCalendarUpdate = millis();
+    if (WiFi.status() == WL_CONNECTED) {
+      Serial.println("🔄 Sincronizzazione periodica del calendario in corso...");
+      fetchAndParseICal();
+      Serial.println("✅ Sincronizzazione calendar completata.");
+    }
+  }
+
   ora = getTime();
   static String ultimaOra = "";
 
