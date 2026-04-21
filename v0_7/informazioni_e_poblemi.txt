@@ -23,16 +23,14 @@ attenzione consigli tra parentesi generati con ai
        Problema: Manca la chiamata a sensors.requestTemperatures(); nel loop() o in una funzione dedicata, prima di leggere la temperatura.
        Soluzione: Aggiungere sensors.requestTemperatures(); prima di leggere la temperatura con sensors.getTempCByIndex(0);
 
-- La calibrazione touch NON viene mai caricata all'accensione (Il vero motivo dei touch "invertiti")
-       Problema: Nel setup() non viene letto il file di calibrazione dallo SPIFFS e passato al display.
-       Soluzione: Aggiungere il codice nel setup() per leggere CALIBRATION_FILE e applicarlo con tft.setTouch(calData).
+- [RISOLTO] Calibrazione touch all'accensione
+       Implementato: load_touch_calibration() in touch_calibration.h legge CALIBRATION_FILE e chiama tft.setTouch(); invocata da setup() dopo l'init del pin TOUCH_CS.
 
 =========================================
        PROBLEMI MEDIAMENTE IMPORTANTI
 =========================================
-- page4() (Lampadina RGB Bluetooth) non è mai raggiungibile
-  Problema: Nello switch della griglia home, il case 4 chiama pageBus() (pullman), ma esiste una funzione page4() per la lampadina RGB che non viene mai chiamata da nessuna parte.
-  Soluzione: Decidere se assegnare pageBus() a un indice diverso oppure rimuovere page4().
+- [RISOLTO] page4() (Lampadina RGB Bluetooth) e Pullman
+  Implementato: idx 4 → page4() (cella griglia "RGB BT"); idx 5 → pageBus() con etichetta/icona Pullman spostata sulla cella centrale. page5() non è più sulla griglia (era solo placeholder).
 
 - roomHum è sempre "--%" nella pagina meteo
   Problema: Il sensore DS18B20 (KY-001) misura solo la temperatura, non l'umidità. La variabile roomHum resta sempre a 0.0 e sullo schermo viene mostrato "--%".

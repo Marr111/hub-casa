@@ -7,6 +7,21 @@
 // GESTIONE TOUCH E CALIBRAZIONE
 // ============================================================================
 
+void load_touch_calibration() {
+  uint16_t calData[5];
+  if (!SPIFFS.exists(CALIBRATION_FILE)) {
+    return;
+  }
+  File f = SPIFFS.open(CALIBRATION_FILE, "r");
+  if (!f) {
+    return;
+  }
+  if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData)) {
+    tft.setTouch(calData);
+  }
+  f.close();
+}
+
 TouchPoint touch_coordinate() {
   TouchPoint p = { 0, 0, false };
 

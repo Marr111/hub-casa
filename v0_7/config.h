@@ -216,6 +216,7 @@ void readSensor();
 
 // Touch Functions
 TouchPoint touch_coordinate();
+void load_touch_calibration();
 void touch_calibrate();
 void test_touch();
 
@@ -228,6 +229,7 @@ void pageprincipale();
 void pageCalendario();
 void pageTask();
 void page3();
+void page4();
 void pageBus();
 void page5();
 void page6();

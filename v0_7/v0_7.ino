@@ -72,6 +72,7 @@ void setup() {
   // Inizializza touch
   pinMode(TOUCH_CS, OUTPUT);
   digitalWrite(TOUCH_CS, HIGH);
+  load_touch_calibration();
 
   // --- FASE 1: Avvio File System ---
   updateLoadingScreen(10, "Inizializzazione File System...");

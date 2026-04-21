@@ -384,8 +384,16 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX - 10, textY + 15);
         tft.println("Impostazioni");
       } else if (row == 1 && col == 0) {
-        // Tragitto pullman / metro
-        // Disegna icona bus semplice (corpo)
+        // Lampadina RGB (stesso slot touch idx 4)
+        int lx = x + 70, ly = y + 22;
+        tft.fillCircle(lx, ly, 14, TFT_ORANGE);
+        tft.drawCircle(lx, ly, 16, TFT_WHITE);
+        tft.setTextSize(2);
+        tft.setTextColor(TFT_WHITE);
+        tft.setCursor(textX - 5, textY + 18);
+        tft.println("RGB BT");
+      } else if (row == 1 && col == 1) {
+        // Pullman (touch idx 5)
         int bx = x + 60, by = y + 18;
         tft.drawRoundRect(bx, by, 38, 20, 3, TFT_WHITE);
         tft.fillRect(bx + 4,  by + 4, 7, 8, TFT_WHITE);
@@ -394,14 +402,10 @@ void disegnaGrigliaHome() {
         tft.fillCircle(bx + 8,  by + 20, 4, TFT_WHITE);
         tft.fillCircle(bx + 28, by + 20, 4, TFT_WHITE);
         tft.fillRect(bx + 34, by + 12, 4, 4, TFT_YELLOW);
-        tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
+        tft.setTextSize(2);
+        tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX + 16, textY + 18);
         tft.println("Pullman");
-      } else if (row == 1 && col == 1) {
-        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
-        tft.setTextColor(TFT_LIGHTGREY);
-        tft.setCursor(textX, textY + 15);
-        tft.println("Pagina 5");
       } else if (row == 1 && col == 2) {
         drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
         tft.setTextColor(TFT_LIGHTGREY);

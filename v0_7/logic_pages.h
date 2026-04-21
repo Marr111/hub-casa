@@ -116,12 +116,12 @@ void pageprincipale() {
         break;
       case 4:
         page = 4;
-        pageBus();
+        page4();
         running = false;
         break;
       case 5:
         page = 5;
-        page5();
+        pageBus();
         running = false;
         break;
       case 6:
