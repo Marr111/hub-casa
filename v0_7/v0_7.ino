@@ -143,7 +143,7 @@ void loop() {
 
   uint16_t x, y;//touch
   if (tft.getTouch(&x, &y)) {
-    if (x > 400 && y > 260) {  // Area Ingranaggio (touch Y invertito: y alto = display top)
+    if (x > 400 && y < 60) {  // Area Ingranaggio (touch Y invertito: y alto = display top)
       delay(200);  // Debounce
       page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare, altrimenti la guard if(page==0) esce subito
       pageImpostazioni();

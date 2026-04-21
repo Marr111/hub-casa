@@ -457,10 +457,9 @@ void pageBus() {
 
   // Coordinate touch badge FERIALE/FESTIVO
   // Badge display: x 350-470, y 8-30
-  // Touch: asse y invertito rispetto al display (y_touch = 320 - y_display)
-  // => touch y: 290-312, touch x: 350-470
+  // Touch segue il display fizico (asse Y normale)
   const int badgeX1 = 340, badgeX2 = 470;
-  const int badgeY1 = 290, badgeY2 = 320;
+  const int badgeY1 = 5, badgeY2 = 40;
 
   // Y della card bus (per hit-test pulsante Aggiorna)
   const int busCardY = 178;
@@ -476,7 +475,7 @@ void pageBus() {
     lastActivity = millis();
 
     // Casetta → home
-    if (x < 60 && y > 260) {
+    if (x < 60 && y < 60) {
       waitRelease();
       page = 0;
       disegnaHome();
@@ -503,9 +502,8 @@ void pageBus() {
       continue;
     }
 
-    // Pulsante "Aggiorna" della card bus
-    if (x >= aggiornaBtnX1 && x <= aggiornaBtnX2 &&
-        y >= aggiornaBtnY1 && y <= aggiornaBtnY2) {
+    // Pulsante Aggiorna
+    if (x >= aggiornaBtnX1 && x <= aggiornaBtnX2 && y >= aggiornaBtnY1 && y <= aggiornaBtnY2) {
       waitRelease();
       refreshBusData(busCardY);
       drawTragittoCard(

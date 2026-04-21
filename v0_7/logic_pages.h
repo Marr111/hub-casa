@@ -68,7 +68,7 @@ void pageprincipale() {
     }
     lastActivity = millis();
     // Tasto HOME (angolo in alto a sinistra)
-    if (x < 60 && y > 236) {
+    if (x < 60 && y < 60) {
       waitRelease();
       page = 0;
       disegnaHome();
@@ -81,20 +81,17 @@ void pageprincipale() {
       continue;
     }
 
-    int row = 0;
+    int idx = 0;
 
     if (y < 70) {
-      row = 2; // parte sotto dello schermo
+      continue; // header
     } else if (y < 153) {
-      row = 1;
+      idx = col + 1; // Top row: 1 (Calendario), 2 (Task), 3 (Meteo)
     } else if (y < 236) {
-      row = 0;  
-    } else {// parte sopra dello schermo
-      continue;
+      idx = col + 4; // Mid row: 4 (RGB), 5 (Pullman), 6 (Pag6)
+    } else {
+      idx = col + 7; // Bot row: 7 (Pag7), 8 (Pag8), 9 (Impostazioni)
     }
-
-    // Indice 1..9: 1 in basso a sinistra, 9 in alto a destra
-    int idx = row * 3 + col + 1;
 
     waitRelease();
 
@@ -178,7 +175,7 @@ void pageCalendario() {
         continue;
       }
       // Casetta → home
-      if (x < 60 && y > 260) {
+      if (x < 60 && y < 60) {
         waitRelease();
         page = 0; disegnaHome(); return;
       }
@@ -203,7 +200,7 @@ void pageCalendario() {
         continue;
       }
       // Casetta → home
-      if (x < 60 && y > 260) {
+      if (x < 60 && y < 60) {
         waitRelease();
         page = 0; disegnaHome(); return;
       }
@@ -230,7 +227,7 @@ void pageTask() {
     lastActivity = millis();
 
     // Casetta → home (angolo alto-sinistra: touch x<60 && y>260 con Y invertita)
-    if (x < 60 && y > 260) {
+    if (x < 60 && y < 60) {
       waitRelease();
       pageIndex = 0;
       page = 0;
@@ -238,8 +235,8 @@ void pageTask() {
       return;
     }
 
-    // Barra navigazione (y < 40 con Y invertita = area in basso allo schermo)
-    if (y < 40) {
+    // Barra navigazione (y > 280 con Y invertita = area in basso allo schermo)
+    if (y > 280) {
       bool hasNext = ((pageIndex + 1) * TASKS_PER_PAGE < tasksCount);
       bool hasPrev = (pageIndex > 0);
 
@@ -274,7 +271,7 @@ void page3() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -299,7 +296,7 @@ void page4() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -323,7 +320,7 @@ void page5() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -347,7 +344,7 @@ void page6() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -371,7 +368,7 @@ void page7() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -395,7 +392,7 @@ void page8() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y > 260) {  // Area casetta
+      if (x < 60 && y < 60) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -438,7 +435,7 @@ void pageImpostazioni() {
     if (tft.getTouch(&tx, &ty)) {
       lastActivity = millis();
       // Se premi la casetta (alto-sinistra: touch X piccolo, touch Y grande per Y invertito)
-      if (tx < 60 && ty > 260) {  // Area casetta
+      if (tx < 60 && ty < 60) {  // Area casetta
         Serial.println("Uscita da Impostazioni");
         page = 0;
         esci_dal_loop = 0;
@@ -544,7 +541,7 @@ void pageInfoDispositivo() {
     if (tft.getTouch(&tx, &ty)) {
       lastActivity = millis();
       // Casetta → home (angolo in alto a sinistra: touch x piccolo, y grande per Y invertito)
-      if (tx < 60 && ty > 260) {
+      if (tx < 60 && ty < 60) {
         waitRelease();
         page = 0;
         disegnaHome();
@@ -627,7 +624,7 @@ void stato_scroll_bar1() {
           }
         }
         // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
-      } else if (tp.x < 60 && tp.y > 260) {  // ritorno alla home (touch Y invertito)
+      } else if (tp.x < 60 && tp.y < 60) {  // ritorno alla home (touch Y invertito)
         page = 0;
         esci_dal_loop = 0;
         return;
