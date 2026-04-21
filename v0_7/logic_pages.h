@@ -384,9 +384,9 @@ void page7() {
 }
 
 void page8() {
-  tft.fillScreen(sfondo_page7);
+  tft.fillScreen(sfondo_page8);
   tft.setCursor(130, 30);
-  tft.setTextColor(TFT_WHITE, sfondo_page7);
+  tft.setTextColor(TFT_WHITE, sfondo_page8);
   tft.setTextSize(4);
   tft.println("Pagina 8");
   drawHouse();

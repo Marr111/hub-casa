@@ -39,7 +39,7 @@ void checkForUpdate() {
   int httpCode = http.GET();
 
   if (httpCode == 200) {
-    DynamicJsonDocument doc(512);
+    JsonDocument doc;
     deserializeJson(doc, http.getString());
     availableVersion = doc["version"].as<String>();
     downloadURL = doc["download_url"].as<String>();

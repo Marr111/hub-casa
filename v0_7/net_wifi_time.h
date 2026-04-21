@@ -35,7 +35,7 @@ void connessioneNTP() {
   int tentativi = 0;
   const int maxTentativi = 5;
 
-  configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, NTP_SERVER);
+  configTime(0, 0, NTP_SERVER);
   Serial.println("⏱ Attendo sincronizzazione NTP...");
 
   while (!getLocalTime(&timeinfo) && tentativi < maxTentativi) {

@@ -117,7 +117,7 @@ bool fetchWeather(WeatherDay days[4]) {
 
   Serial.println("[METEO] Body len=" + String(body.length()));
 
-  DynamicJsonDocument doc(4096);
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, body);
 
   if (err) {

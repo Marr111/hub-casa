@@ -118,15 +118,17 @@ void loop() {
     ultimaOra = ora;
     dataLunga = getDateLong();
 
-    tft.setTextColor(TFT_WHITE, sfondo_page0);
+    if (page == 0) {
+      tft.setTextColor(TFT_WHITE, sfondo_page0);
 
-    tft.setTextSize(4);
-    tft.setCursor(130, 130);
-    tft.println(ora);
+      tft.setTextSize(4);
+      tft.setCursor(130, 130);
+      tft.println(ora);
 
-    tft.setTextSize(3);
-    tft.setCursor(75, 200);
-    tft.println(dataLunga);
+      tft.setTextSize(3);
+      tft.setCursor(75, 200);
+      tft.println(dataLunga);
+    }
   }
 
   uint16_t x, y;//touch

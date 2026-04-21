@@ -48,6 +48,7 @@
 #define sfondo_page5 TFT_YELLOW
 #define sfondo_page6 TFT_CYAN
 #define sfondo_page7 TFT_MAGENTA
+#define sfondo_page8 TFT_ORANGE
 #define sfondo_pageImpostazioni TFT_DARKGREY
 #define sfondo_pageBus 0x000F   // blu notte
 

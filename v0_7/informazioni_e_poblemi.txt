@@ -113,73 +113,29 @@ attenzione consigli tra parentesi generati con ai
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ────────────────────────────────────────────────────────────────────────────────
-2.1  pageBus() imposta page=4 ma la griglia usa idx=5 per i bus (bus_schedule.h, riga 452)
+- [RISOLTO] 2.1  pageBus() imposta page=4 ma la griglia usa idx=5 per i bus (bus_schedule.h, riga 452)
+  Implementato: Modificato page = 4 in page = 5 e il loop while(page == 5).
 ────────────────────────────────────────────────────────────────────────────────
-   File: bus_schedule.h riga 452 → page = 4
-   File: logic_pages.h riga 123-124 → case 5: pageBus()
-   
-   Problema: pageBus() imposta page=4, ma la griglia la chiama con case 5.
-             Il while(page==4) dentro pageBus() funziona, ma page4() 
-             (lampadina RGB, case 4) usa ANCHE page=4.
-             Se pageBus() viene interrotta e page4() viene chiamata, 
-             ci sarebbe una collisione sullo stato "page==4".
-   
-   Soluzione: Assegnare numeri di pagina unici e coerenti a ogni funzione.
-             pageBus() dovrebbe usare page=5 (che corrisponde al suo case).
 
 ────────────────────────────────────────────────────────────────────────────────
-2.2  page8() usa sfondo_page7 invece di sfondo_page8 (logic_pages.h, riga 387-389)
+- [RISOLTO] 2.2  page8() usa sfondo_page7 invece di sfondo_page8 (logic_pages.h, riga 387-389)
+  Implementato: Aggiunto sfondo_page8 in config.h e modificato page8() per utilizzarlo.
 ────────────────────────────────────────────────────────────────────────────────
-   File: logic_pages.h, righe 387-389
-   Codice: tft.fillScreen(sfondo_page7);
-           tft.setTextColor(TFT_WHITE, sfondo_page7);
-   
-   Problema: page8() utilizza sfondo_page7 come colore di sfondo.
-             Non esiste un #define sfondo_page8. Probabilmente un copia-incolla.
-   
-   Soluzione: Aggiungere #define sfondo_page8 in config.h e usarlo in page8().
-
 
 ────────────────────────────────────────────────────────────────────────────────
-2.4  Il loop() principale aggiorna l'orologio SOLO sulla pagina home (v0_7.ino, righe 121-129)
+- [RISOLTO] 2.4  Il loop() principale aggiorna l'orologio SOLO sulla pagina home (v0_7.ino, righe 121-129)
+  Implementato: Aggiunto if (page == 0) prima del blocco di disegno dell'orologio nel loop().
 ────────────────────────────────────────────────────────────────────────────────
-   File: v0_7.ino, righe 121-129
-   
-   Problema: tft.setTextColor(TFT_WHITE, sfondo_page0) e i setCursor fissi
-             disegnano ora e data sempre nella stessa posizione con sfondo blu.
-             Se l'utente è su un'altra pagina (page != 0), queste scritte
-             vengono disegnate sopra il contenuto della pagina attiva,
-             corrompendo l'interfaccia.
-   
-   Soluzione: Aggiungere un guard "if (page == 0)" prima del blocco di disegno
-              dell'orologio nel loop().
 
 ────────────────────────────────────────────────────────────────────────────────
-2.5  Configurazione NTP doppia e potenzialmente in conflitto (v0_7.ino, riga 84 vs 88-90)
+- [RISOLTO] 2.5  Configurazione NTP doppia e potenzialmente in conflitto (v0_7.ino, riga 84 vs 88-90)
+  Implementato: Sostituito configTime(GMT_OFFSET_SEC...) con configTime(0, 0, NTP_SERVER).
 ────────────────────────────────────────────────────────────────────────────────
-   File: v0_7.ino, righe 84 e 88-90
-   File: net_wifi_time.h, riga 38
-   
-   Problema: connessioneNTP() chiama configTime(GMT_OFFSET_SEC, DAYLIGHT_OFFSET_SEC, ...)
-             che è il metodo "semplice" per ESP32. Ma subito dopo, setup() chiama
-             setenv("TZ", "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00", 1) + tzset().
-             I due metodi possono confliggere: configTime con offset fissi vs
-             la variabile TZ con regole DST complete.
-   
-   Soluzione: Usare SOLO setenv/tzset (è il metodo più corretto) e chiamare
-              configTime(0, 0, NTP_SERVER) senza offset, lasciando che
-              la timezone venga gestita dalla variabile TZ.
 
 ────────────────────────────────────────────────────────────────────────────────
-2.6  DynamicJsonDocument deprecato (weather.h, bus_schedule.h, ota_update.h)
+- [RISOLTO] 2.6  DynamicJsonDocument deprecato (weather.h, bus_schedule.h, ota_update.h)
+  Implementato: Sostituito DynamicJsonDocument con JsonDocument per supportare ArduinoJson v7.
 ────────────────────────────────────────────────────────────────────────────────
-   File: weather.h riga 120, bus_schedule.h riga 181, ota_update.h riga 42
-   
-   Problema: DynamicJsonDocument è stato deprecato in ArduinoJson v7.
-             Se si aggiorna la libreria, il codice non compilerà più.
-   
-   Soluzione: Usare JsonDocument (senza dimensione fissa) se si usa ArduinoJson v7,
-              oppure fissare la versione della libreria a v6.x nel progetto.
 
 ────────────────────────────────────────────────────────────────────────────────
 2.7  Nessun aggiornamento periodico del calendario (runtime)
@@ -566,8 +522,3 @@ attenzione consigli tra parentesi generati con ai
    - 8 problemi di robustezza
    - 4 problemi di architettura
    - 7+ problemi specifici per file
-
-  Il progetto funziona nel suo stato attuale ma ha diverse fragilità che
-  potrebbero causare crash dopo ore di utilizzo (frammentazione heap) e
-  presenta rischi di sicurezza significativi, soprattutto per il repo pubblico
-  con credenziali in chiaro e per l'OTA update non verificato.

@@ -177,8 +177,8 @@ int fetchBus2014(BusDeparture* out, int maxOut) {
   Serial.printf("[BUS] payload: %s\n", payload.c_str());
 
   // Parse JSON – array di oggetti {line, hour, realtime}
-  // DynamicJsonDocument: stima 512 bytes per la risposta breve
-  DynamicJsonDocument doc(1024);
+  // JsonDocument (ArduinoJson v7)
+  JsonDocument doc;
   DeserializationError err = deserializeJson(doc, payload);
   if (err) {
     Serial.printf("[BUS] JSON err: %s\n", err.c_str());
@@ -449,7 +449,7 @@ void drawBusPage() {
 // ============================================================================
 
 void pageBus() {
-  page = 4;
+  page = 5;
   lastActivity = millis();
   festivoManuale = isFestivo(); // inizializza con il giorno reale
   drawBusPage();
@@ -469,7 +469,7 @@ void pageBus() {
 
   delay(300);
 
-  while (page == 4) {
+  while (page == 5) {
     uint16_t x, y;
     checkInactivity();
     if (!tft.getTouch(&x, &y)) { delay(10); continue; }
