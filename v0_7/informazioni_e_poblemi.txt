@@ -29,8 +29,10 @@ attenzione consigli tra parentesi generati con ai
 =========================================
        PROBLEMI MEDIAMENTE IMPORTANTI
 =========================================
-- [RISOLTO] page4() (Lampadina RGB Bluetooth) e Pullman
-  Implementato: idx 4 → page4() (cella griglia "RGB BT"); idx 5 → pageBus() con etichetta/icona Pullman spostata sulla cella centrale. page5() non è più sulla griglia (era solo placeholder).
+- refactoryng file github
+- page4() (Lampadina RGB Bluetooth) non è mai raggiungibile
+  Problema: Nello switch della griglia home, il case 4 chiama pageBus() (pullman), ma esiste una funzione page4() per la lampadina RGB che non viene mai chiamata da nessuna parte.
+  Soluzione: Decidere se assegnare pageBus() a un indice diverso oppure rimuovere page4().
 
 - roomHum è sempre "--%" nella pagina meteo
   Problema: Il sensore DS18B20 (KY-001) misura solo la temperatura, non l'umidità. La variabile roomHum resta sempre a 0.0 e sullo schermo viene mostrato "--%".
@@ -40,6 +42,7 @@ attenzione consigli tra parentesi generati con ai
        FUNZIONALITÀ A LUNGO TERMINE
 =========================================
 - Aggiungere nuove pagine : 
+  -nella home vicino a impostazioni notifiche del telefono
   - pagina lampadina
   - pagina musica
   - pagina qualità dell'aria
