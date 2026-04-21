@@ -9,15 +9,26 @@
 
 void load_touch_calibration() {
   uint16_t calData[5];
+  
   if (!SPIFFS.exists(CALIBRATION_FILE)) {
+    Serial.println("Calibrazione mancante. Avvio calibrazione forzata.");
+    touch_calibrate();
     return;
   }
+  
   File f = SPIFFS.open(CALIBRATION_FILE, "r");
   if (!f) {
+    Serial.println("Errore lettura calibrazione. Avvio calibrazione forzata.");
+    touch_calibrate();
     return;
   }
+  
   if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData)) {
     tft.setTouch(calData);
+    Serial.println("Calibrazione touch caricata con successo.");
+  } else {
+    Serial.println("Dati calibrazione corrotti. Avvio calibrazione forzata.");
+    touch_calibrate();
   }
   f.close();
 }
