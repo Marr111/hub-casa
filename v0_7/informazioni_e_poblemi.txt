@@ -70,19 +70,6 @@ attenzione consigli tra parentesi generati con ai
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
 ────────────────────────────────────────────────────────────────────────────────
-1.2  EMAIL GOOGLE IN CHIARO NELL'URL iCal (config.h, riga 72-73)
-────────────────────────────────────────────────────────────────────────────────
-   File: config.h
-   Codice: #define ICAL_URL "https://calendar.google.com/calendar/ical/casettamatteo1%40gmail.com/..."
-   
-   Problema: L'indirizzo email personale è visibile nel codice sorgente pubblico.
-             Chiunque può accedere al calendario pubblico e vedere tutti i tuoi eventi.
-   
-   Rischio: MEDIO — Privacy compromessa, possibile phishing/spam.
-   
-   Soluzione: Spostare anche gli URL dei calendari in "secrets.h" + .gitignore
-
-────────────────────────────────────────────────────────────────────────────────
 1.3  OTA UPDATE SENZA VERIFICA DI INTEGRITÀ (ota_update.h)
 ────────────────────────────────────────────────────────────────────────────────
    File: ota_update.h, righe 56-96
@@ -152,18 +139,6 @@ attenzione consigli tra parentesi generati con ai
    
    Soluzione: Aggiungere #define sfondo_page8 in config.h e usarlo in page8().
 
-────────────────────────────────────────────────────────────────────────────────
-2.3  fetchAndParseICal() è commentata nel setup (v0_7.ino, riga 96)
-────────────────────────────────────────────────────────────────────────────────
-   File: v0_7.ino, riga 96
-   Codice: //fetchAndParseICal();
-   
-   Problema: Il caricamento del calendario è disabilitato. Questo significa che
-             eventsCount e tasksCount restano a 0. La vista calendario sarà
-             sempre vuota, e printEvents()/printTasks() non stamperanno nulla.
-   
-   Nota: Il commento dice "per far eseguire più velocemente il codice" ma
-         questo rompe tutta la funzionalità calendario/task del dispositivo.
 
 ────────────────────────────────────────────────────────────────────────────────
 2.4  Il loop() principale aggiorna l'orologio SOLO sulla pagina home (v0_7.ino, righe 121-129)
