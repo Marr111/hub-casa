@@ -48,6 +48,7 @@ bool isFestivo() {
   int wday = t->tm_wday;   // 0=Dom, 6=Sab
   int day  = t->tm_mday;
   int mon  = t->tm_mon + 1; // 1-12
+  int year = t->tm_year + 1900;
 
   if (wday == 0 || wday == 6) return true;
 
@@ -57,11 +58,39 @@ bool isFestivo() {
   if (mon ==  4 && day == 25) return true; // Liberazione
   if (mon ==  5 && day ==  1) return true; // Festa del Lavoro
   if (mon ==  6 && day ==  2) return true; // Repubblica
+  if (mon ==  6 && day == 24) return true; // San Giovanni (patrono Torino)
   if (mon ==  8 && day == 15) return true; // Ferragosto
   if (mon == 11 && day ==  1) return true; // Ognissanti
   if (mon == 12 && day ==  8) return true; // Immacolata
   if (mon == 12 && day == 25) return true; // Natale
   if (mon == 12 && day == 26) return true; // S. Stefano
+
+  // Festività mobili: Pasqua (algoritmo di Gauss/Meeus) + Pasquetta
+  {
+    // Calcola il giorno giuliano di Pasqua per 'year'
+    int a = year % 19;
+    int b = year / 100;
+    int c = year % 100;
+    int d2 = b / 4;
+    int e2 = b % 4;
+    int f = (b + 8) / 25;
+    int g = (b - f + 1) / 3;
+    int h = (19 * a + b - d2 - g + 15) % 30;
+    int i = c / 4;
+    int k = c % 4;
+    int l = (32 + 2 * e2 + 2 * i - h - k) % 7;
+    int m2 = (a + 11 * h + 22 * l) / 451;
+    int easterMonth = (h + l - 7 * m2 + 114) / 31;
+    int easterDay   = ((h + l - 7 * m2 + 114) % 31) + 1;
+    // Pasqua
+    if (mon == easterMonth && day == easterDay) return true;
+    // Pasquetta (= Pasqua + 1)
+    int lMonth = easterMonth, lDay = easterDay + 1;
+    if (lDay > 31 || (lDay > 30 && (lMonth == 4 || lMonth == 6 || lMonth == 9 || lMonth == 11))) {
+      lDay = 1; lMonth++;
+    }
+    if (mon == lMonth && day == lDay) return true;
+  }
 
   return false;
 }
@@ -314,7 +343,10 @@ void drawTragittoCard(int y0, uint16_t accentColor,
       int yi = rowY + shown * 18;
 
       int bH = 0, bM = 0;
-      sscanf(deps[i].hour, "%d:%d", &bH, &bM);
+      if (sscanf(deps[i].hour, "%d:%d", &bH, &bM) != 2) {
+        Serial.printf("[BUS] Formato hour non valido: '%s', salto\n", deps[i].hour);
+        shown--; continue;
+      }
 
       // Filtra bus non raggiungibili
       time_t now_t = time(nullptr);

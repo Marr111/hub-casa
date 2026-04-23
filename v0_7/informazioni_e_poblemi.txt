@@ -107,129 +107,6 @@ attenzione consigli tra parentesi generati con ai
      - Oppure pinnare il certificato specifico del server
      - Come minimo, documentare il rischio accettato
 
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  2. BUG LOGICI E FUNZIONALI                                                ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.1  pageBus() imposta page=4 ma la griglia usa idx=5 per i bus (bus_schedule.h, riga 452)
-  Implementato: Modificato page = 4 in page = 5 e il loop while(page == 5).
-────────────────────────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.2  page8() usa sfondo_page7 invece di sfondo_page8 (logic_pages.h, riga 387-389)
-  Implementato: Aggiunto sfondo_page8 in config.h e modificato page8() per utilizzarlo.
-────────────────────────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.4  Il loop() principale aggiorna l'orologio SOLO sulla pagina home (v0_7.ino, righe 121-129)
-  Implementato: Aggiunto if (page == 0) prima del blocco di disegno dell'orologio nel loop().
-────────────────────────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.5  Configurazione NTP doppia e potenzialmente in conflitto (v0_7.ino, riga 84 vs 88-90)
-  Implementato: Sostituito configTime(GMT_OFFSET_SEC...) con configTime(0, 0, NTP_SERVER).
-────────────────────────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.6  DynamicJsonDocument deprecato (weather.h, bus_schedule.h, ota_update.h)
-  Implementato: Sostituito DynamicJsonDocument con JsonDocument per supportare ArduinoJson v7.
-────────────────────────────────────────────────────────────────────────────────
-
-────────────────────────────────────────────────────────────────────────────────
-- [RISOLTO] 2.7  Nessun aggiornamento periodico del calendario (runtime)
-  Implementato: Scommentato fetchAndParseICal() nel setup() e aggiunto refresh ogni 30 minuti nel loop().
-────────────────────────────────────────────────────────────────────────────────
-
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  3. PROBLEMI DI MEMORIA E STABILITÀ                                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-────────────────────────────────────────────────────────────────────────────────
-3.1  Memory leak in fetchICalUrl() (ical_parser.h, riga 66)
-────────────────────────────────────────────────────────────────────────────────
-   File: ical_parser.h, riga 66
-   Codice: WiFiClientSecure *client = new WiFiClientSecure;
-   
-   Problema: Se http.begin() fallisce (riga 73), il "delete client" alla riga 86
-             viene comunque eseguito, ma se avviene un'eccezione o crash prima,
-             il client non viene liberato. Più importante: se fetchICalUrl() viene
-             chiamata più volte (2 URL in fetchAndParseICal), ogni chiamata alloca
-             e dealloca ~50KB di heap per il client SSL, causando frammentazione.
-   
-   Soluzione: Usare un client sullo stack, oppure riutilizzare un unico client
-              per entrambe le chiamate.
-
-────────────────────────────────────────────────────────────────────────────────
-3.2  String Arduino usate in modo eccessivo → frammentazione heap
-────────────────────────────────────────────────────────────────────────────────
-   File: Tutti (specialmente ical_parser.h, weather.h, net_wifi_time.h)
-   
-   Problema: Il codice fa un uso massiccio di String Arduino (allocazione dinamica).
-             Su ESP32 con heap limitato (circa 300KB), operazioni come:
-             - http.getString() (weather.h riga 115) → alloca l'INTERO body in RAM
-             - Concatenazioni String in processLine() → riallocazioni continue
-             - getTime() e getDateLong() ritornano String ad ogni chiamata nel loop()
-             
-             Questo causa frammentazione della heap nel tempo e potenziali crash
-             per out-of-memory dopo ore/giorni di funzionamento.
-   
-   Soluzione:
-     - Usare buffer char[] fissi dove possibile
-     - Per getTime() e getDateLong(), usare buffer statici
-     - Per il JSON meteo, usare http.getStream() e deserializeJson() dallo stream
-
-────────────────────────────────────────────────────────────────────────────────
-3.3  Buffer statici in parseICalStream possono creare problemi (ical_parser.h, righe 118-121)
-────────────────────────────────────────────────────────────────────────────────
-   File: ical_parser.h, righe 118-121
-   Codice: static char lineBuf[512];
-           static char rawBuf[256];
-   
-   Problema: Questi buffer sono "static" il che significa che persistono tra le
-             chiamate. Se parseICalStream viene chiamata in modo rientrante 
-             (improbabile ma possibile in futuro), ci sarebbero conflitti.
-             Inoltre, 512+256 bytes restano permanentemente occupati nella RAM
-             anche quando non servono.
-   
-   Soluzione: Rimuovere "static" e metterli come variabili locali normali (sullo stack).
-
-────────────────────────────────────────────────────────────────────────────────
-3.4  Variabili globali definite in config.h (violazione ODR)
-────────────────────────────────────────────────────────────────────────────────
-   File: config.h, righe 90-97
-   Codice: const char* FIRMWARE_VERSION = "1.0";
-           String availableVersion = "";
-           String downloadURL = "";
-           bool updateAvailable = false;
-           unsigned long lastVersionCheck = 0;
-           const unsigned long VERSION_CHECK_INTERVAL = 86400000;
-   
-   Problema: Queste variabili NON-const (availableVersion, downloadURL, ecc.)
-             sono DEFINITE nell'header. Se config.h viene incluso da più file .cpp,
-             ci saranno definizioni multiple → errore del linker (ODR violation).
-             Attualmente funziona solo perché tutto è negli .h inclusi in sequenza
-             dal .ino, ma è fragile e non standard.
-   
-   Soluzione: Dichiarare come "extern" in config.h e definirle nel .ino.
-
-────────────────────────────────────────────────────────────────────────────────
-3.5  Implementazioni di funzioni negli header → multiple definition
-────────────────────────────────────────────────────────────────────────────────
-   File: TUTTI i file .h
-   
-   Problema: Tutti i file .h contengono implementazioni di funzioni (non solo
-             dichiarazioni). Questo è un anti-pattern: se mai si aggiungesse
-             un secondo file .cpp che include config.h, si avrebbero errori
-             di "multiple definition" per ogni funzione.
-   
-   Soluzione: A lungo termine, spostare le implementazioni in file .cpp separati
-              e tenere solo i prototipi negli .h. Per Arduino questo funziona
-              ancora, ma è una cattiva pratica che limita la scalabilità.
-
-
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  4. PROBLEMI DI ROBUSTEZZA E EDGE CASES                                    ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -292,7 +169,7 @@ attenzione consigli tra parentesi generati con ai
    
    Soluzione:
      - Aggiungere un check periodico nel loop(): if(WiFi.status() != WL_CONNECTED)
-     - Tentare riconnessione automatica
+     - Tentare riconnessione automatica ogni 10 minuti
      - Mostrare l'icona WiFi in rosso nella home quando disconnesso
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -351,7 +228,6 @@ attenzione consigli tra parentesi generati con ai
    - printEventsTFT(): marcata come "Legacy stub", mai chiamata dal flusso attuale
    - switchPage(): dichiarata in config.h riga 247 ma MAI definita → errore linker
      se qualcuno la chiama
-   - cambio_pagina(): dichiarata in config.h riga 239, mai definita
    - printEventsTFT(): dichiarata in config.h riga 199, è legacy
    - drawWeekView(): funziona ma include il filtro 30 giorni hardcoded
    
@@ -461,47 +337,6 @@ attenzione consigli tra parentesi generati con ai
   MA non chiama disegnaHome(). La home viene ridisegnata solo dal codice in 
   pageImpostazioni() dopo il break dal while. Se però page viene cambiato da
   checkInactivity(), potrebbe non ridisegnarsi correttamente.
-
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  7. RIEPILOGO PRIORITÀ                                                      ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-  PRIORITÀ CRITICA (da risolvere subito):
-  ────────────────────────────────────────
-  [!] Credenziali WiFi in chiaro nel repo pubblico (config.h)
-  [!] Email personale visibile nel repo (config.h)  
-  [!] OTA update senza verifica di integrità (ota_update.h)
-  [!] fetchAndParseICal() commentato → calendario non funziona (v0_7.ino)
-  [!] Loop orologio disegna su tutte le pagine (v0_7.ino)
-
-  PRIORITÀ ALTA (da risolvere presto):
-  ───────────────────────────────────────
-  [!] setInsecure() disabilita tutta la sicurezza TLS
-  [!] pageBus() usa page=4 → collisione con page4()
-  [!] Nessuna riconnessione WiFi automatica
-  [!] switchPage() e cambio_pagina() dichiarate ma mai definite
-  [!] touch_calibrate() non rispetta calDataOK → ricalibra sempre
-
-  PRIORITÀ MEDIA (da risolvere nel tempo):
-  ─────────────────────────────────────────
-  [ ] page8 usa sfondo sbagliato (sfondo_page7)
-  [ ] Nessun aggiornamento periodico del calendario
-  [ ] Bug temperatura 0°C mostrata come "--" nel meteo
-  [ ] Memory leak potenziale in fetchICalUrl
-  [ ] WiFi.setSleep(false) mai ripristinato
-  [ ] Festività mobili mancanti (Pasqua, patrono)
-  [ ] DynamicJsonDocument deprecato
-
-  PRIORITÀ BASSA (miglioramenti futuri):
-  ───────────────────────────────────────
-  [ ] Sostituire String Arduino con buffer char[] statici
-  [ ] Eliminare numeri magici (usare #define)
-  [ ] Refactoring: spostare implementazioni da .h a .cpp
-  [ ] Eliminare codice morto (page5-8 vuote, printEventsTFT legacy)
-  [ ] Sostituire delay() bloccanti con millis()
-  [ ] Implementare timeout in waitRelease() e test_touch()
-
 
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  8. NOTE FINALI                                                              ║

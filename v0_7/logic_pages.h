@@ -35,7 +35,9 @@ void updateLoadingScreen(int percent, const char* message) {
 
 void waitRelease() {
   uint16_t x, y;
-  while (tft.getTouch(&x, &y)) {
+  unsigned long t0 = millis();
+  // timeout 5 secondi: evita blocco infinito su touch glitch hardware
+  while (tft.getTouch(&x, &y) && (millis() - t0 < 5000)) {
     lastActivity = millis();
     delay(10);
   }
@@ -517,7 +519,8 @@ void pageInfoDispositivo() {
 
   // Loop: aggiorna l'uptime ogni secondo e aspetta tocco
   unsigned long lastDraw = 0;
-  while (true) {
+  int pageIdInfo = page; // salva il numero di pagina corrente (es. 9)
+  while (page == pageIdInfo) {
     checkInactivity();
     if (page == 0) return;
 
@@ -660,7 +663,7 @@ void stato_scroll_bar2() {
   tft.setCursor(30, 280);
   tft.println("10");
 
-  while (1) {
+  while (stato_scroll_bar == 2) {
     checkInactivity();
     if (page == 0) return;
 
@@ -692,7 +695,7 @@ void stato_scroll_bar3() {
   tft.setCursor(30, 280);
   tft.println("15");
 
-  while (1) {
+  while (stato_scroll_bar == 3) {
     checkInactivity();
     if (page == 0) return;
 

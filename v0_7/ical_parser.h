@@ -63,14 +63,14 @@ void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &c
 void parseICalStream(WiFiClient *stream);
 
 void fetchICalUrl(const char* url) {
-  WiFiClientSecure *client = new WiFiClientSecure;
-  client->setInsecure();
+  WiFiClientSecure client;
+  client.setInsecure();
   HTTPClient http;
 
   http.setTimeout(10000);          // era default 5s, ma aumenta la banda
 
   Serial.printf("Scarico iCal da: %s\n", url);
-  if (http.begin(*client, url)) {
+  if (http.begin(client, url)) {
     http.addHeader("Accept-Encoding", "identity"); // disabilita gzip se non lo gestisci
     int httpCode = http.GET();
     if (httpCode == HTTP_CODE_OK) {
@@ -83,7 +83,6 @@ void fetchICalUrl(const char* url) {
   } else {
     Serial.println("http.begin() fallito");
   }
-  delete client;
 }
 
 void fetchAndParseICal() {
@@ -107,6 +106,8 @@ void fetchAndParseICal() {
       }
     }
   }
+
+  WiFi.setSleep(true); // Ripristina power saving WiFi dopo il download
 }
 
 void parseICalStream(WiFiClient *stream) {
@@ -115,10 +116,10 @@ void parseICalStream(WiFiClient *stream) {
   // Nessuna String Arduino viene allocata sull'heap in questo loop:
   // questo elimina la frammentazione della RAM durante il parsing.
   // -----------------------------------------------------------------------
-  static char lineBuf[512];  // riga corrente (logica, dopo unfolding)
+  char lineBuf[512];  // riga corrente (logica, dopo unfolding)
   int lineLen = 0;
 
-  static char rawBuf[256];   // riga raw letta dal socket (prima dell'unfolding)
+  char rawBuf[256];   // riga raw letta dal socket (prima dell'unfolding)
   int rawLen = 0;
 
   bool inEvent = false;
@@ -135,9 +136,7 @@ void parseICalStream(WiFiClient *stream) {
   auto flushLogical = [&]() {
     if (haveLogical && lineLen > 0) {
       lineBuf[lineLen] = '\0';
-      // Converti in String solo qui, una volta per riga logica
-      String s(lineBuf);
-      processLine(s, inEvent, curr, inTask, currTask);
+      processLine(lineBuf, inEvent, curr, inTask, currTask);
       lineLen = 0;
     }
     haveLogical = false;
@@ -206,21 +205,31 @@ void parseICalStream(WiFiClient *stream) {
   flushLogical();
 }
 
-void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &currTask) {
-  const char* raw = line.c_str();
-  const char* colon = strchr(raw, ':');
+void processLine(char* raw, bool &inEvent, Event &curr, bool &inTask, Task &currTask) {
+  char* colon = strchr(raw, ':');
   if (!colon) return;
 
-  int colonPos = colon - raw;
-  String name = line.substring(0, colonPos);
-  String value = line.substring(colonPos + 1);
-  name.trim();
-  value.trim();
+  *colon = '\0';
+  char* n_ptr = raw;
+  char* v_ptr = colon + 1;
 
-  // Estrai la chiave base (prima del ';' se presente)
-  String key = name;
-  int semi = name.indexOf(';');
-  if (semi != -1) key = name.substring(0, semi);
+  // Trim name
+  while (*n_ptr == ' ' || *n_ptr == '\t') n_ptr++;
+  char* p = n_ptr + strlen(n_ptr) - 1;
+  while (p >= n_ptr && (*p == ' ' || *p == '\t' || *p == '\r')) { *p = '\0'; p--; }
+
+  // Trim value
+  while (*v_ptr == ' ' || *v_ptr == '\t') v_ptr++;
+  p = v_ptr + strlen(v_ptr) - 1;
+  while (p >= v_ptr && (*p == ' ' || *p == '\t' || *p == '\r')) { *p = '\0'; p--; }
+
+  // Key base
+  char* k_ptr = n_ptr;
+  char* semi = strchr(n_ptr, ';');
+  if (semi) *semi = '\0';
+
+  String key = k_ptr;
+  String value = v_ptr;
 
   if (key == "BEGIN") {
     if (value == "VEVENT") {

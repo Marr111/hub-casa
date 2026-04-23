@@ -112,13 +112,10 @@ bool fetchWeather(WeatherDay days[4]) {
     return false;
   }
 
-  String body = http.getString();
-  http.end();
-
-  Serial.println("[METEO] Body len=" + String(body.length()));
-
   JsonDocument doc;
-  DeserializationError err = deserializeJson(doc, body);
+  DeserializationError err = deserializeJson(doc, http.getStream());
+  
+  http.end();
 
   if (err) {
     weatherLastError = String("JSON: ") + err.c_str();

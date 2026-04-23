@@ -51,7 +51,7 @@ void connessioneNTP() {
   }
 }
 
-String getDateLong() {
+const char* getDateLong() {
   if (!getLocalTime(&timeinfo)) return "N/A";
 
   const char *daysOfWeek[] = { "domenica", "lunedi", "martedi", "mercoledi",
@@ -59,22 +59,22 @@ String getDateLong() {
   const char *months[] = { "gen", "feb", "mar", "apr", "mag", "giu",
                            "lug", "ago", "set", "ott", "nov", "dic" };
 
-  char buffer[40];
+  static char buffer[40];
   sprintf(buffer, "%s %02d %s %04d",
           daysOfWeek[timeinfo.tm_wday],
           timeinfo.tm_mday,
           months[timeinfo.tm_mon],
           timeinfo.tm_year + 1900);
-  return String(buffer);
+  return buffer;
 }
 
-String getTime() {
+const char* getTime() {
   if (!getLocalTime(&timeinfo)) return "N/A";
 
-  char buffer[9];
+  static char buffer[10];
   sprintf(buffer, "%02d:%02d:%02d",
           timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-  return String(buffer);
+  return buffer;
 }
 
 #endif // NET_WIFI_TIME_H

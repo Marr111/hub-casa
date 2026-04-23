@@ -87,15 +87,14 @@
 
 // ============================================================================
 // SINCRONIZZAZIONE CODICE
-// ============================================================================
-const char* FIRMWARE_VERSION = "1.0"; // La tua versione attuale
+extern const char* FIRMWARE_VERSION; // La tua versione attuale
 // VERSION_CHECK_URL è definito in secrets.h
 
-String availableVersion = "";
-String downloadURL = "";
-bool updateAvailable = false;
-unsigned long lastVersionCheck = 0;
-const unsigned long VERSION_CHECK_INTERVAL = 86400000; // 24 ore
+extern String availableVersion;
+extern String downloadURL;
+extern bool updateAvailable;
+extern unsigned long lastVersionCheck;
+extern const unsigned long VERSION_CHECK_INTERVAL; // 24 ore
 
 // ============================================================================
 // STRUTTURE DATI
@@ -141,8 +140,8 @@ struct Task {
 // Display e tempo
 extern TFT_eSPI tft;
 extern struct tm timeinfo;
-extern String dataLunga;
-extern String ora;
+extern char dataLunga[40];
+extern char ora[10];
 extern time_t now;
 
 // Eventi e task
@@ -189,13 +188,13 @@ void disegnaGrigliaHome();
 // Network & Time Functions
 void connessioneWiFi();
 void connessioneNTP();
-String getDateLong();
-String getTime();
+const char* getDateLong();
+const char* getTime();
 String icalUnescape(String s);
 time_t parseICalDateToTime(const String &val, bool isUtc, bool dateOnly);
 void fetchAndParseICal();
 void parseICalStream(WiFiClient *stream);
-void processLine(String &line, bool &inEvent, Event &curr, bool &inTask, Task &currTask);
+void processLine(char* raw, bool &inEvent, Event &curr, bool &inTask, Task &currTask);
 void printEvents();
 void printEventsTFT(); // legacy
 void drawWeekView(int weekOffset);
@@ -237,7 +236,6 @@ void page6();
 void page7();
 void page8();
 void pageImpostazioni();
-void cambio_pagina();
 void checkInactivity();
 void stato_scroll_bar1();
 void stato_scroll_bar2();

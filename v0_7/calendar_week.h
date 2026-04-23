@@ -86,11 +86,11 @@ void drawWeekView(int weekOffset) {
   const char* mNS[] = {"Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"};
   char weekLabel[32];
   if (tmMon.tm_mon == tmSun.tm_mon) {
-    sprintf(weekLabel, "%d - %d %s %d",
+    snprintf(weekLabel, sizeof(weekLabel), "%d - %d %s %d",
             tmMon.tm_mday, tmSun.tm_mday,
             mNS[tmMon.tm_mon], tmMon.tm_year + 1900);
   } else {
-    sprintf(weekLabel, "%d %s - %d %s",
+    snprintf(weekLabel, sizeof(weekLabel), "%d %s - %d %s",
             tmMon.tm_mday, mNS[tmMon.tm_mon],
             tmSun.tm_mday, mNS[tmSun.tm_mon]);
   }
@@ -168,7 +168,7 @@ void drawWeekView(int weekOffset) {
     else numCol = TFT_WHITE;
 
     tft.setTextColor(numCol);
-    char ds[4]; sprintf(ds, "%d", d);
+    char ds[4]; snprintf(ds, sizeof(ds), "%d", d);
     tft.setCursor(cx + 3, cy + 3);
     tft.print(ds);
 
@@ -191,7 +191,7 @@ void drawWeekView(int weekOffset) {
     if (n > WK_MAX_EVENTS_VISIBLE) {
       // indicatore "+N" se ci sono più eventi
       tft.setTextSize(1); tft.setTextColor(0x7BCF);
-      char more[6]; sprintf(more, "+%d", n - WK_MAX_EVENTS_VISIBLE);
+      char more[6]; snprintf(more, sizeof(more), "+%d", n - WK_MAX_EVENTS_VISIBLE);
       tft.setCursor(cx + 2, evY + WK_MAX_EVENTS_VISIBLE * 10);
       tft.print(more);
     }

@@ -44,7 +44,7 @@ void drawCalendarGrid(int month, int year) {
   drawHouse(8, 6);
   const char* mN[] = {"GENNAIO","FEBBRAIO","MARZO","APRILE","MAGGIO","GIUGNO",
                       "LUGLIO","AGOSTO","SETTEMBRE","OTTOBRE","NOVEMBRE","DICEMBRE"};
-  char hdr[32]; sprintf(hdr, "%s %d", mN[month-1], year);
+  char hdr[32]; snprintf(hdr, sizeof(hdr), "%s %d", mN[month-1], year);
   tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
   tft.setCursor(240-(int)strlen(hdr)*6+20, 11);
   tft.print(hdr);
@@ -79,7 +79,7 @@ void drawCalendarGrid(int month, int year) {
       // Numero giorno
       tft.setTextSize(1);
       tft.setTextColor(isToday ? TFT_CYAN : (col>=5 ? 0xFB00 : TFT_WHITE));
-      char ds[3]; sprintf(ds,"%d",d);
+      char ds[3]; snprintf(ds, sizeof(ds), "%d", d);
       tft.setCursor(cx+3, cy+3); tft.print(ds);
       // Labels eventi (max 3)
       for (int e=0; e<3 && e<n; e++) {
@@ -110,7 +110,7 @@ void drawDayDetail(int day, int month, int year) {
   // Header
   tft.fillRect(0, 0, 480, CAL_HDR_H, 0x1082);
   const char* mN[] = {"Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"};
-  char title[32]; sprintf(title, "%d %s %d", day, mN[month-1], year);
+  char title[32]; snprintf(title, sizeof(title), "%d %s %d", day, mN[month-1], year);
   tft.setTextSize(2); tft.setTextColor(TFT_WHITE);
   tft.setCursor(60, 11); tft.print(title);
   // Bottone "< Cal." in alto a DESTRA (touch x>380 && y>280)

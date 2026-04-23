@@ -19,8 +19,19 @@ int esci_dal_loop = 1;
 
 unsigned long lastActivity = 0;
 time_t now;
-String dataLunga;
-String ora;
+char dataLunga[40] = "";
+char ora[10] = "";
+
+// ============================================================================
+// SINCRONIZZAZIONE CODICE
+// ============================================================================
+const char* FIRMWARE_VERSION = "1.0"; // La tua versione attuale
+String availableVersion = "";
+String downloadURL = "";
+String expectedSha256 = "";           // Hash SHA256 del firmware da scaricare
+bool updateAvailable = false;
+unsigned long lastVersionCheck = 0;
+const unsigned long VERSION_CHECK_INTERVAL = 86400000; // 24 ore
 
 // LED RGB
 int led_r = 255;
@@ -92,7 +103,7 @@ void setup() {
 
   // --- FASE 4:Lettura Calendario ---
   updateLoadingScreen(80, "Lettura Calendario...");
-  fetchAndParseICal();
+  //fetchAndParseICal();
   printEvents();
   printTasks();
   delay(200);
@@ -121,12 +132,32 @@ void loop() {
     }
   }
 
-  ora = getTime();
-  static String ultimaOra = "";
+  // Riconnessione automatica WiFi (ogni 10 minuti se disconnesso - fix 4.5)
+  static unsigned long lastWiFiCheck = 0;
+  if (millis() - lastWiFiCheck > 600000) { // 10 minuti
+    lastWiFiCheck = millis();
+    if (WiFi.status() != WL_CONNECTED) {
+      Serial.println("⚠️ WiFi disconnesso, tentativo di riconnessione...");
+      WiFi.disconnect();
+      connessioneWiFi();
+      if (WiFi.status() == WL_CONNECTED) {
+        Serial.println("✅ WiFi riconnesso.");
+        connessioneNTP(); // Risincronizza anche l'orario
+        // Ridisegna l'icona WiFi se siamo sulla home
+        if (page == 0) disegnaHome();
+      } else {
+        Serial.println("❌ Riconnessione WiFi fallita. Prossimo tentativo tra 10 minuti.");
+      }
+    }
+  }
 
-  if (ora != ultimaOra) {//ora
-    ultimaOra = ora;
-    dataLunga = getDateLong();
+  const char* currentOra = getTime();
+  static char ultimaOra[10] = "";
+
+  if (strcmp(currentOra, ultimaOra) != 0) {//ora
+    strcpy(ultimaOra, currentOra);
+    strcpy(ora, currentOra);
+    strcpy(dataLunga, getDateLong());
 
     if (page == 0) {
       tft.setTextColor(TFT_WHITE, sfondo_page0);

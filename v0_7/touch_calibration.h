@@ -121,11 +121,13 @@ void test_touch() {
 
   unsigned long lastPrint = 0;
   uint16_t lastX = 0, lastY = 0;
+  unsigned long testStart = millis(); // timeout 60 secondi (fix 4.2)
 
-  while (1) {
+  while (millis() - testStart < 60000) {
     uint16_t x, y;
 
     if (tft.getTouch(&x, &y)) {
+      testStart = millis(); // reset timeout a ogni tocco
       if (millis() - lastPrint > 100 || abs(x - lastX) > 5 || abs(y - lastY) > 5) {
         Serial.print("Touch X: ");
         Serial.print(x);
@@ -159,6 +161,8 @@ void test_touch() {
 
     delay(10);
   }
+  // Timeout raggiunto: torna alla home
+  Serial.println("Test touch: timeout raggiunto, uscita automatica");
 }
 
 #endif
