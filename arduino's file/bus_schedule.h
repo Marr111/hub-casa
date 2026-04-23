@@ -33,6 +33,9 @@ struct BusDeparture {
 };
 
 // Stato manuale festivo (sovrascrive il rilevamento automatico)
+// NOTA: 'static' limita la variabile a questo translation unit. Se i file venissero
+// separati in .cpp distinti, questa variabile non sarebbe più accessibile da fuori.
+// Attualmente non è un bug perché pageBus() è nello stesso file, ma tenerlo a mente.
 static bool festivoManuale = false;
 
 // ============================================================================

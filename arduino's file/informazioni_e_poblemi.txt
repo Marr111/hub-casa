@@ -59,162 +59,10 @@ attenzione consigli tra parentesi generati con ai
 
 ================================================================================
 ================================================================================
-     ANALISI COMPLETA DEL CODICE - 21 Aprile 2026
+     ANALISI COMPLETA DEL CODICE - 23 Aprile 2026
      Problemi, Vulnerabilità di Sicurezza, Bug e Suggerimenti
 ================================================================================
 ================================================================================
-
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  1. VULNERABILITÀ DI SICUREZZA  (CRITICHE)                                ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-────────────────────────────────────────────────────────────────────────────────
-1.3  OTA UPDATE SENZA VERIFICA DI INTEGRITÀ (ota_update.h)
-────────────────────────────────────────────────────────────────────────────────
-   File: ota_update.h, righe 56-96
-   
-   Problema: Il firmware viene scaricato e flashato SENZA verificare:
-     - Nessun controllo di checksum (SHA256/MD5)
-     - Nessuna firma digitale del firmware
-     - Il version.json è scaricato da GitHub via HTTPS ma senza verifica del certificato
-     - downloadURL potrebbe essere manipolata (man-in-the-middle)
-   
-   Rischio: CRITICO — Un attaccante potrebbe iniettare firmware malevolo.
-             Se l'URL viene cambiato nel repo o si viene reindirizzati, 
-             il dispositivo flasherebbe codice arbitrario.
-   
-   Soluzione:
-     - Aggiungere un campo "sha256" nel version.json e verificarlo dopo il download
-     - Usare WiFiClientSecure con verifica del certificato (non setInsecure())
-     - Aggiungere un timeout di sicurezza durante il download
-
-────────────────────────────────────────────────────────────────────────────────
-1.4  setInsecure() — NESSUNA VERIFICA CERTIFICATO TLS (bus_schedule.h, ical_parser.h)
-────────────────────────────────────────────────────────────────────────────────
-   File: bus_schedule.h riga 155, ical_parser.h riga 67
-   Codice: client->setInsecure();
-   
-   Problema: Disabilita completamente la verifica del certificato SSL/TLS.
-             Qualsiasi attaccante sulla rete può intercettare o manipolare
-             le comunicazioni HTTPS (attacco Man-in-the-Middle).
-   
-   Rischio: ALTO — Dati intercettabili, possibile iniezione di dati falsi
-             (orari bus falsi, eventi calendario manipolati, firmware malevolo).
-   
-   Soluzione:
-     - Usare certificati root CA con esp_crt_bundle_attach()
-     - Oppure pinnare il certificato specifico del server
-     - Come minimo, documentare il rischio accettato
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  4. PROBLEMI DI ROBUSTEZZA E EDGE CASES                                    ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-────────────────────────────────────────────────────────────────────────────────
-4.1  Nessun timeout nel loop di waitRelease() (logic_pages.h, riga 36-43)
-────────────────────────────────────────────────────────────────────────────────
-   File: logic_pages.h, righe 36-43
-   Codice: while (tft.getTouch(&x, &y)) { ... delay(10); }
-   
-   Problema: Se il touchscreen si blocca in stato "premuto" (glitch hardware,
-             acqua sullo schermo, ecc.), waitRelease() non esce MAI.
-             L'intero dispositivo si blocca in un loop infinito.
-   
-   Soluzione: Aggiungere un timeout (es. 5 secondi massimo di attesa).
-
-────────────────────────────────────────────────────────────────────────────────
-4.2  test_touch() ha un while(1) senza timeout (touch_calibration.h, riga 114)
-────────────────────────────────────────────────────────────────────────────────
-   File: touch_calibration.h, riga 114
-   Codice: while (1) { ... }
-   
-   Problema: Il test touch non ha un timeout di inattività. Se nessuno tocca
-             lo schermo, resta bloccato per sempre. Non chiama checkInactivity().
-   
-   Soluzione: Aggiungere checkInactivity() o un timeout nel loop.
-
-────────────────────────────────────────────────────────────────────────────────
-4.3  pageInfoDispositivo() ha while(true) senza uscita garantita (logic_pages.h, riga 523)
-────────────────────────────────────────────────────────────────────────────────
-   File: logic_pages.h, riga 523
-   Codice: while (true) { ... }
-   
-   Problema: La funzione dipende da checkInactivity() per uscire, ma se per
-             qualche motivo page non viene mai impostato a 0, il loop è infinito.
-             Inoltre, pageInfoDispositivo() non è raggiungibile dal menu principale
-             (griglia home), solo dalle impostazioni scroll bar 1.
-   
-   Soluzione: Usare while(page == X) come le altre pagine.
-
-────────────────────────────────────────────────────────────────────────────────
-4.4  WiFi.setSleep(false) non viene mai ripristinato (ical_parser.h, riga 90)
-────────────────────────────────────────────────────────────────────────────────
-   File: ical_parser.h, riga 90
-   Codice: WiFi.setSleep(false);
-   
-   Problema: Il power saving WiFi viene disabilitato ma MAI riabilitato.
-             Questo aumenta il consumo energetico del dispositivo per sempre,
-             anche quando non sta scaricando dati.
-   
-   Soluzione: Chiamare WiFi.setSleep(true) alla fine di fetchAndParseICal().
-
-────────────────────────────────────────────────────────────────────────────────
-4.5  Nessuna gestione del caso "WiFi disconnesso" durante il funzionamento
-────────────────────────────────────────────────────────────────────────────────
-   Problema: Se il WiFi si disconnette dopo il setup (es. router spento),
-             il dispositivo non tenta mai di riconnettersi automaticamente.
-             Le funzioni che richiedono WiFi (meteo, bus, OTA) falliranno
-             silenziosamente senza notificare l'utente sullo schermo.
-   
-   Soluzione:
-     - Aggiungere un check periodico nel loop(): if(WiFi.status() != WL_CONNECTED)
-     - Tentare riconnessione automatica ogni 10 minuti
-     - Mostrare l'icona WiFi in rosso nella home quando disconnesso
-
-────────────────────────────────────────────────────────────────────────────────
-4.6  sprintf senza controllo di overflow (vari file)
-────────────────────────────────────────────────────────────────────────────────
-   File: calendar_month.h riga 47, 82, 113
-         calendar_week.h riga 89, 93, 171, 194
-         logic_pages.h riga 535
-         net_wifi_time.h riga 63
-   
-   Problema: Viene usato sprintf con buffer piccoli senza snprintf.
-             Esempio: char ds[3]; sprintf(ds,"%d",d); — se d>=100 (impossibile
-             per un giorno, ma per altri casi simili potrebbe essere pericoloso).
-             char hdr[32]; sprintf(hdr, "%s %d", mN[month-1], year); — "SETTEMBRE 2026"
-             è 15 caratteri, ma nomi più lunghi o anni diversi potrebbero
-             avvicinarsi al limite.
-   
-   Soluzione: Usare snprintf(buf, sizeof(buf), ...) ovunque per sicurezza.
-
-────────────────────────────────────────────────────────────────────────────────
-4.7  Festività mobili mancanti (bus_schedule.h, righe 43-67)
-────────────────────────────────────────────────────────────────────────────────
-   File: bus_schedule.h, righe 43-67
-   
-   Problema: La funzione isFestivo() controlla solo le festività fisse italiane.
-             Mancano le festività MOBILI:
-             - Pasqua (e Lunedì dell'Angelo / Pasquetta)
-             - Festa del Patrono locale (es. 24 giugno per Torino, San Giovanni)
-   
-   Soluzione: Implementare il calcolo della Pasqua (algoritmo di Gauss/Meeus)
-              e aggiungere il patrono locale.
-
-────────────────────────────────────────────────────────────────────────────────
-4.8  sscanf su hour del bus senza validazione (bus_schedule.h, riga 317)
-────────────────────────────────────────────────────────────────────────────────
-   File: bus_schedule.h, riga 317
-   Codice: sscanf(deps[i].hour, "%d:%d", &bH, &bM);
-   
-   Problema: Se il formato dell'API cambia o il campo "hour" è vuoto/malformato,
-             sscanf non parserà correttamente e bH/bM resteranno a 0,
-             causando calcoli errati senza nessun avviso.
-   
-   Soluzione: Controllare il valore di ritorno di sscanf (deve essere == 2).
-
-
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║  5. PROBLEMI DI ARCHITETTURA E MANUTENIBILITÀ                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
@@ -233,6 +81,12 @@ attenzione consigli tra parentesi generati con ai
    
    Soluzione: Rimuovere le funzioni non usate o implementarle. Rimuovere le
               dichiarazioni di funzioni che non esistono.
+
+inserisci le icone e i titoli per queste pagine 
+  - pagina 4 -->lampadina
+  - pagina 6 --> musica
+  - pagina 7 --> timer
+  - pagina 8 --> Cornice Fotografia / Salvaschermo
 
 ────────────────────────────────────────────────────────────────────────────────
 5.2  Numeri magici ovunque
@@ -337,17 +191,3 @@ attenzione consigli tra parentesi generati con ai
   MA non chiama disegnaHome(). La home viene ridisegnata solo dal codice in 
   pageImpostazioni() dopo il break dal while. Se però page viene cambiato da
   checkInactivity(), potrebbe non ridisegnarsi correttamente.
-
-╔══════════════════════════════════════════════════════════════════════════════╗
-║  8. NOTE FINALI                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-
-  Numero totale problemi trovati: 35+
-  
-  Di cui:
-   - 4 vulnerabilità di sicurezza
-   - 7 bug logici/funzionali
-   - 5 problemi di memoria/stabilità
-   - 8 problemi di robustezza
-   - 4 problemi di architettura
-   - 7+ problemi specifici per file

@@ -171,10 +171,11 @@ void readSensor() {
   
   if (t == DEVICE_DISCONNECTED_C) {
     Serial.println("Errore (controlla i cavi o il pin!)");
+    sensorReady = false;  // Lettura non valida
   } else {
     Serial.printf("Temp: %.1f C\n", t);
     roomTemp = t;
-    roomHum = 0.0f; // KY-001 non misura l'umidità
+    sensorReady = true;   // Lettura valida: anche 0°C è un dato reale
   }
 }
 
@@ -200,23 +201,21 @@ void drawWeatherPage() {
   tft.setCursor(60, 10);
   tft.println("METEO");
 
-  // Riquadro dati KY-015 (Stanza) in linea
+  // Riquadro dati KY-001 (Stanza)
+  // FIX: usare sensorReady invece di roomTemp==0.0f per evitare il bug a 0°C in inverno
   tft.setTextColor(TFT_WHITE);
   tft.setTextSize(2);
   tft.setCursor(200, 16);
   tft.print("Stanza: ");
   tft.setTextColor(TFT_YELLOW);
-  if (roomTemp == 0.0f && roomHum == 0.0f) {
+  if (!sensorReady) {
     tft.print("-- c  ");
   } else {
     tft.print((int)round(roomTemp)); tft.print(" c  ");
   }
+  // KY-001 non misura l'umidità: mostriamo sempre "--%" (il ramo else era inutile)
   tft.setTextColor(TFT_CYAN);
-  if (roomTemp == 0.0f && roomHum == 0.0f) {
-    tft.print("--%");
-  } else {
-    tft.print("--%"); // KY-001 non misura l'umidità
-  }
+  tft.print("--%");
 
   // Linea separatrice
   tft.drawFastHLine(0, 42, 480, TFT_LIGHTGREY);

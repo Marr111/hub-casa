@@ -248,11 +248,11 @@ void drawWeatherIcon(int cx, int cy) {
 void drawCaricamento(int cx, int cy, int num_giri) {
   Serial.println("Pallini del caricamento ...");
 
-  uint16_t dotcolor = TFT_WHITE;
-  uint16_t sfondo   = TFT_LIGHTGREY;
+  uint16_t dotcolor    = TFT_WHITE;
+  uint16_t loadingBgColor = TFT_LIGHTGREY;  // rinominata da 'sfondo' per evitare conflitto con sfondo_page0
   int raggio = 15;
 
-  tft.fillRect(cx - raggio, cy - raggio, 31, 31, sfondo);
+  tft.fillRect(cx - raggio, cy - raggio, 31, 31, loadingBgColor);
 
   for (int i = 0; i < num_giri; i++) {
     for (int angolo = 0; angolo < 360; angolo += 40) {
@@ -265,7 +265,7 @@ void drawCaricamento(int cx, int cy, int num_giri) {
 
       int x_old = cx + raggio * cos(rad_precedente);
       int y_old = cy + raggio * sin(rad_precedente);
-      tft.fillCircle(x_old, y_old, 3, sfondo);
+      tft.fillCircle(x_old, y_old, 3, loadingBgColor);
 
       delay(100);
     }
@@ -347,6 +347,46 @@ void drawWipIcon(int cx, int cy, uint16_t color) {
   tft.fillRect(cx - 2, cy - 8, 4, 16, color);
 }
 
+// Icona nota musicale (pagina 6 - Musica)
+void drawMusicIcon(int cx, int cy, uint16_t color) {
+  // Testa della nota (cerchietto)
+  tft.fillCircle(cx - 6, cy + 10, 6, color);
+  // Gambo verticale
+  tft.fillRect(cx, cy - 10, 3, 22, color);
+  // Bandiera orizzontale
+  tft.fillRect(cx, cy - 10, 14, 3, color);
+  tft.fillRect(cx, cy - 4, 14, 3, color);
+  // Seconda testa (per fare la doppia nota)
+  tft.fillCircle(cx + 8, cy + 10, 6, color);
+}
+
+// Icona timer / sveglia (pagina 7 - Timer)
+void drawTimerIcon(int cx, int cy, uint16_t color) {
+  // Cerchio orologio
+  tft.drawCircle(cx, cy + 4, 14, color);
+  tft.drawCircle(cx, cy + 4, 13, color);
+  // Lancette
+  tft.drawLine(cx, cy + 4, cx, cy - 4, color);    // ore (su)
+  tft.drawLine(cx, cy + 4, cx + 8, cy + 9, color); // minuti (basso-dx)
+  // Piedini
+  tft.drawLine(cx - 10, cy + 18, cx - 14, cy + 22, color);
+  tft.drawLine(cx + 10, cy + 18, cx + 14, cy + 22, color);
+  // Bottone in cima
+  tft.fillRect(cx - 3, cy - 10, 6, 4, color);
+}
+
+// Icona cornice fotografica (pagina 8 - Salvaschermo)
+void drawFrameIcon(int cx, int cy, uint16_t color) {
+  // Cornice esterna
+  tft.drawRoundRect(cx - 16, cy - 12, 32, 26, 3, color);
+  tft.drawRoundRect(cx - 15, cy - 11, 30, 24, 2, color);
+  // Montagna stilizzata dentro la cornice
+  tft.drawLine(cx - 8, cy + 10, cx, cy - 2, color);
+  tft.drawLine(cx, cy - 2, cx + 8, cy + 10, color);
+  // Sole stilizzato (piccolo)
+  tft.fillCircle(cx + 7, cy - 5, 3, color);
+}
+
 void disegnaGrigliaHome() {
   int cellW  = 160;         // 480 / 3
   int headerH = 70;         // spazio in alto per titolo/disegni
@@ -370,30 +410,33 @@ void disegnaGrigliaHome() {
       int textY = y + cellH / 2;
 
       if (row == 0 && col == 0) {
-        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
-        tft.setTextColor(TFT_LIGHTGREY);
-        tft.setCursor(textX, textY + 15);
-        tft.println("Pagina 7");
+        // Pagina 7 - Timer
+        drawTimerIcon(x + 80, y + 25, TFT_CYAN);
+        tft.setTextColor(TFT_CYAN);
+        tft.setCursor(textX + 12, textY + 15);
+        tft.println("Timer");
       } else if (row == 0 && col == 1) {
-        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
-        tft.setTextColor(TFT_LIGHTGREY);
-        tft.setCursor(textX, textY + 15);
-        tft.println("Pagina 8");
+        // Pagina 8 - Salvaschermo / Cornice
+        drawFrameIcon(x + 80, y + 30, TFT_ORANGE);
+        tft.setTextColor(TFT_ORANGE);
+        tft.setCursor(textX - 5, textY + 15);
+        tft.println("Salvaschermo");
       } else if (row == 0 && col == 2) {
         drawGearIcon(x + 80, y + 30, COLOR_CARD);
+        tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX - 10, textY + 15);
         tft.println("Impostazioni");
       } else if (row == 1 && col == 0) {
-        // Lampadina RGB (stesso slot touch idx 4)
+        // Pagina 4 - Lampadina RGB
         int lx = x + 70, ly = y + 22;
         tft.fillCircle(lx, ly, 14, TFT_ORANGE);
         tft.drawCircle(lx, ly, 16, TFT_WHITE);
         tft.setTextSize(2);
         tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX - 5, textY + 18);
-        tft.println("RGB BT");
+        tft.println("Lampadina");
       } else if (row == 1 && col == 1) {
-        // Pullman (touch idx 5)
+        // Pagina 5 - Pullman
         int bx = x + 60, by = y + 18;
         tft.drawRoundRect(bx, by, 38, 20, 3, TFT_WHITE);
         tft.fillRect(bx + 4,  by + 4, 7, 8, TFT_WHITE);
@@ -407,20 +450,24 @@ void disegnaGrigliaHome() {
         tft.setCursor(textX + 16, textY + 18);
         tft.println("Pullman");
       } else if (row == 1 && col == 2) {
-        drawWipIcon(x + 80, y + 25, TFT_DARKGREY);
-        tft.setTextColor(TFT_LIGHTGREY);
-        tft.setCursor(textX, textY + 15);
-        tft.println("Pagina 6");
+        // Pagina 6 - Musica
+        drawMusicIcon(x + 80, y + 28, TFT_GREEN);
+        tft.setTextColor(TFT_GREEN);
+        tft.setCursor(textX + 12, textY + 15);
+        tft.println("Musica");
       } else if (row == 2 && col == 0) {
         drawCalendarIcon(x + 62, y + 20, TFT_WHITE);
+        tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX, textY + 18);
         tft.println("Calendario");
       } else if (row == 2 && col == 1) {
         drawTaskIcon(x + 62, y + 20, TFT_WHITE);
+        tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX + 35, textY + 18);
         tft.println("Task");
       } else if (row == 2 && col == 2) {
         drawWeatherIcon(x + 60, y + 25);
+        tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX + 30, textY + 15);
         tft.println("Meteo");
       }

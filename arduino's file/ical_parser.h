@@ -278,7 +278,11 @@ void processLine(char* raw, bool &inEvent, Event &curr, bool &inTask, Task &curr
         return; // Salta il resto del processing (non aggiungerlo a events)
       }
 
-      time_t limit = now + (31 * 24 * 60 * 60);
+      // FIX: usa time(nullptr) invece di 'now' (che viene aggiornato solo nel setup).
+      // Se il dispositivo rimane acceso per giorni, 'now' sarebbe obsoleto e il
+      // limite sarebbe nel passato → nessun evento verrebbe mostrato.
+      time_t currentTime = time(nullptr);
+      time_t limit = currentTime + (31 * 24 * 60 * 60);
 
       if (curr.rruleWeekly) {
         // Espandi tutte le occorrenze settimanali nella finestra now..limit

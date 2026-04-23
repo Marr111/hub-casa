@@ -22,7 +22,7 @@
 // ============================================================================
 // DEFINIZIONI DISPLAY
 // ============================================================================
-#define ST7796_DRIVER
+// NOTA: ST7796_DRIVER è già definito in User_Setup.h di TFT_eSPI → non ridefinire qui
 #define TFT_WIDTH 320
 #define TFT_HEIGHT 480
 
@@ -73,9 +73,9 @@
 // sono definiti in secrets.h (non pushato su GitHub).
 #define NTP_SERVER "pool.ntp.org"
 
-// Timezone Italia
-#define GMT_OFFSET_SEC 3600
-#define DAYLIGHT_OFFSET_SEC 3600
+// Timezone Italia — gestita ESCLUSIVAMENTE tramite setenv("TZ", ...) in setup().
+// GMT_OFFSET_SEC / DAYLIGHT_OFFSET_SEC rimossi: erano superflui e venivano
+// sovrascritti da setenv() → un solo meccanismo evita comportamenti inattesi.
 
 // ============================================================================
 // LIMITI E COSTANTI
@@ -84,6 +84,15 @@
 #define MAX_TASKS 50
 #define TASKS_PER_PAGE 5
 #define INACTIVITY_TIMEOUT 30000  // 30 secondi in millisecondi
+
+// ============================================================================
+// COSTANTI TOUCH (sostituiscono i magic numbers sparsi nel codice)
+// ============================================================================
+#define HOME_BTN_X_MAX  60   // x < HOME_BTN_X_MAX  → zona casetta (angolo alto-sx)
+#define HOME_BTN_Y_MAX  60   // y < HOME_BTN_Y_MAX  → zona casetta
+#define GEAR_BTN_X_MIN  400  // x > GEAR_BTN_X_MIN  → zona ingranaggio (angolo alto-dx)
+#define GEAR_BTN_Y_MAX  60   // y < GEAR_BTN_Y_MAX  → zona ingranaggio
+#define DEBOUNCE_MS     200  // debounce touch standard (ms)
 
 // ============================================================================
 // SINCRONIZZAZIONE CODICE
@@ -158,9 +167,9 @@ extern int stato_scroll_bar;
 extern int esci_dal_loop;
 extern unsigned long lastActivity;
 
-// Sensore KY-001 (DS18B20)
+// Sensore KY-001 (DS18B20) — misura solo temperatura, NON umidità
 extern float roomTemp;
-extern float roomHum;
+extern bool  sensorReady;   // true quando il sensore ha letto almeno una volta (evita bug 0°C = "--")
 extern DallasTemperature sensors;
 
 // LED RGB (per funzionalità future)
@@ -196,7 +205,7 @@ void fetchAndParseICal();
 void parseICalStream(WiFiClient *stream);
 void processLine(char* raw, bool &inEvent, Event &curr, bool &inTask, Task &currTask);
 void printEvents();
-void printEventsTFT(); // legacy
+// printEventsTFT() rimossa: era un legacy stub mai chiamato
 void drawWeekView(int weekOffset);
 bool weekCanGoLeft(int weekOffset);
 bool weekCanGoRight(int weekOffset);
@@ -221,8 +230,7 @@ void touch_calibrate();
 void test_touch();
 
 // Logic Pages Functions
-extern int page;
-extern int lastPage;
+// NOTA: extern int page / lastPage già dichiarate sopra (riga ~154-156) — non duplicare
 
 void updateLoadingScreen(int percent, const char* message);
 void pageprincipale();
@@ -243,7 +251,7 @@ void stato_scroll_bar3();
 int touchMenu(int stato_scroll_bar);
 void disegnaHome();
 void waitRelease();
-void switchPage(int p);
+// switchPage() rimossa: dichiarata ma mai definita → errore linker
 
 //sincronizzazione codice
 bool isNewerVersion(String currentVer, String newVer);

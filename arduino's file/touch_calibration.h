@@ -58,6 +58,12 @@ void touch_calibrate() {
         if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData))
           calDataOK = 1;
         f.close();
+        // FIX: se i dati sono validi e REPEAT_CAL è false, non ricalibriamo
+        if (calDataOK) {
+          tft.setTouch(calData);
+          Serial.println("Calibrazione touch caricata da touch_calibrate() (skip ricalibrazione).");
+          return;
+        }
       }
     }
   }

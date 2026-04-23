@@ -40,9 +40,10 @@ int led_b = 255;
 bool led_acceso = true;
 int luminosita = 100;
 
-// Sensore KY-001 (DS18B20)
+// Sensore KY-001 (DS18B20) — misura solo temperatura, NON umidità
 float roomTemp = 0.0f;
-float roomHum  = 0.0f;
+// roomHum rimossa: KY-001 non misura l'umidità (era sempre 0.0 → mostrava "--" inutilmente)
+bool sensorReady = false;   // true dopo la prima lettura valida (evita bug: 0°C reale = "--")
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
@@ -87,31 +88,29 @@ void setup() {
 
   // --- FASE 1: Avvio File System ---
   updateLoadingScreen(10, "Inizializzazione File System...");
-  delay(200);
 
   // --- FASE 2: Connessione WiFi ---
   updateLoadingScreen(30, "Connessione al WiFi...");
   connessioneWiFi();
   connessioneNTP();
-  delay(200);
 
   // --- FASE 3: Sincronizzazione Orario ---
   updateLoadingScreen(50, "Sincronizzazione Orario NTP...");
   setenv("TZ", "CET-1CEST,M3.5.0/02:00,M10.5.0/03:00", 1);
   tzset();
-  delay(200);
 
-  // --- FASE 4:Lettura Calendario ---
+  // --- FASE 4: Lettura Calendario ---
+  // IMPORTANTE: fetchAndParseICal() DEVE stare PRIMA di printEvents()/printTasks().
+  // Se si decommenta il fetch, decommentare anche print DOPO di esso.
   updateLoadingScreen(80, "Lettura Calendario...");
-  //fetchAndParseICal();
-  printEvents();
-  printTasks();
-  delay(200);
+  //fetchAndParseICal();  // <-- decommentare per abilitare download calendario
+  //printEvents();        // <-- chiamare solo DOPO fetchAndParseICal()
+  //printTasks();         // <-- idem
 
   // --- FASE 5: Completamento ---
   updateLoadingScreen(100, "Avvio completato!");
-  Serial.println("🚀 Setup completato!");
-  delay(1000);  
+  Serial.println("Setup completato!");
+  delay(800);
 
   page = 0;
   disegnaHome();
@@ -174,9 +173,9 @@ void loop() {
 
   uint16_t x, y;//touch
   if (tft.getTouch(&x, &y)) {
-    if (x > 400 && y < 60) {  // Area Ingranaggio (touch Y invertito: y alto = display top)
-      delay(200);  // Debounce
-      page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare, altrimenti la guard if(page==0) esce subito
+    if (x > GEAR_BTN_X_MIN && y < GEAR_BTN_Y_MAX) {  // Area Ingranaggio (angolo alto-dx)
+      delay(DEBOUNCE_MS);
+      page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare
       pageImpostazioni();
     } else {
       pageprincipale();

@@ -149,8 +149,7 @@ void pageprincipale() {
   }
 }
 
-// Aggiungi la definizione esterna per la nuova variabile
-extern int eventiPageIndex;
+// NOTA: eventiPageIndex è definito in v0_7.ino — non serve ridichiararlo qui
 
 void pageCalendario() {
   int weekOffset = 0;  // 0 = settimana corrente
@@ -289,16 +288,21 @@ void page3() {
 void page4() {
   tft.fillScreen(sfondo_page4);
   tft.setTextColor(TFT_WHITE, sfondo_page4);
-  tft.setCursor(130, 30);
   tft.setTextSize(3);
-  tft.println("LAMPADINA RGB BLUETOOTH");
+  tft.setCursor(130, 30);
+  tft.println("LAMPADINA RGB");
+  // Icona lampadina grande al centro
+  tft.fillCircle(240, 140, 50, TFT_ORANGE);
+  tft.drawCircle(240, 140, 52, TFT_WHITE);
+  tft.fillRect(225, 185, 30, 12, TFT_DARKGREY); // base
+  tft.drawRect(225, 185, 30, 12, TFT_WHITE);
   drawHouse();
 
   while (page == 4) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y < 60) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -322,7 +326,7 @@ void page5() {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y < 60) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -336,17 +340,19 @@ void page5() {
 
 void page6() {
   tft.fillScreen(sfondo_page6);
-  tft.setCursor(130, 30);
+  tft.setCursor(170, 30);
   tft.setTextColor(TFT_WHITE, sfondo_page6);
   tft.setTextSize(4);
-  tft.println("Pagina 6");
+  tft.println("MUSICA");
+  // Icona nota musicale grande al centro
+  drawMusicIcon(240, 150, TFT_WHITE);
   drawHouse();
 
   while (page == 6) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y < 60) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -360,17 +366,19 @@ void page6() {
 
 void page7() {
   tft.fillScreen(sfondo_page7);
-  tft.setCursor(130, 30);
+  tft.setCursor(175, 30);
   tft.setTextColor(TFT_WHITE, sfondo_page7);
   tft.setTextSize(4);
-  tft.println("Pagina 7");
+  tft.println("TIMER");
+  // Icona timer grande al centro
+  drawTimerIcon(240, 150, TFT_WHITE);
   drawHouse();
 
   while (page == 7) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y < 60) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -384,17 +392,19 @@ void page7() {
 
 void page8() {
   tft.fillScreen(sfondo_page8);
-  tft.setCursor(130, 30);
+  tft.setCursor(100, 30);
   tft.setTextColor(TFT_WHITE, sfondo_page8);
   tft.setTextSize(4);
-  tft.println("Pagina 8");
+  tft.println("SALVASCHERMO");
+  // Icona cornice grande al centro
+  drawFrameIcon(240, 160, TFT_WHITE);
   drawHouse();
 
   while (page == 8) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < 60 && y < 60) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
         waitRelease();
         page = 0;
         disegnaHome();
@@ -627,9 +637,11 @@ void stato_scroll_bar1() {
           }
         }
         // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
-      } else if (tp.x < 60 && tp.y < 60) {  // ritorno alla home (touch Y invertito)
+      } else if (tp.x < HOME_BTN_X_MAX && tp.y < HOME_BTN_Y_MAX) {  // ritorno alla home
         page = 0;
         esci_dal_loop = 0;
+        // FIX: disegnaHome() garantisce il ridisegno anche se checkInactivity() modifica page
+        disegnaHome();
         return;
       }
       // Info dispositivo (pulsante 5, y display ~280-300 → touch y ~20-40)
