@@ -349,15 +349,30 @@ void drawWipIcon(int cx, int cy, uint16_t color) {
 
 // Icona nota musicale (pagina 6 - Musica)
 void drawMusicIcon(int cx, int cy, uint16_t color) {
-  // Testa della nota (cerchietto)
-  tft.fillCircle(cx - 6, cy + 10, 6, color);
-  // Gambo verticale
-  tft.fillRect(cx, cy - 10, 3, 22, color);
-  // Bandiera orizzontale
-  tft.fillRect(cx, cy - 10, 14, 3, color);
-  tft.fillRect(cx, cy - 4, 14, 3, color);
-  // Seconda testa (per fare la doppia nota)
-  tft.fillCircle(cx + 8, cy + 10, 6, color);
+  // Versione più compatta per evitare tagli
+  int r = 5;
+  // Teste delle note
+  tft.fillCircle(cx - 8, cy + 10, r, color);
+  tft.fillCircle(cx + 6, cy + 10, r, color);
+  // Gambi
+  tft.fillRect(cx - 8 + r - 2, cy - 10, 2, 20, color);
+  tft.fillRect(cx + 6 + r - 2, cy - 10, 2, 20, color);
+  // Barra superiore
+  tft.fillTriangle(cx - 5, cy - 10, cx + 9, cy - 10, cx + 9, cy - 6, color);
+  tft.fillRect(cx - 5, cy - 10, 14, 4, color);
+}
+
+// Icona lampadina (pagina 4 - Lampadina)
+void drawBulbIcon(int cx, int cy, uint16_t color) {
+  // Parte superiore (vetro)
+  tft.fillCircle(cx, cy - 5, 12, color);
+  tft.fillRoundRect(cx - 8, cy, 16, 12, 3, color);
+  // Base (attacco)
+  tft.fillRect(cx - 6, cy + 10, 12, 4, TFT_DARKGREY);
+  tft.fillRect(cx - 6, cy + 15, 12, 3, TFT_DARKGREY);
+  tft.fillCircle(cx, cy + 19, 2, TFT_YELLOW); // contatto fondo
+  // Filamento stilizzato
+  tft.drawCircle(cx, cy - 5, 6, TFT_BLACK);
 }
 
 // Icona timer / sveglia (pagina 7 - Timer)
@@ -428,9 +443,7 @@ void disegnaGrigliaHome() {
         tft.println("Impostazioni");
       } else if (row == 1 && col == 0) {
         // Pagina 4 - Lampadina RGB
-        int lx = x + 70, ly = y + 22;
-        tft.fillCircle(lx, ly, 14, TFT_ORANGE);
-        tft.drawCircle(lx, ly, 16, TFT_WHITE);
+        drawBulbIcon(x + 80, y + 25, TFT_ORANGE);
         tft.setTextSize(2);
         tft.setTextColor(TFT_WHITE);
         tft.setCursor(textX - 5, textY + 18);
@@ -451,7 +464,7 @@ void disegnaGrigliaHome() {
         tft.println("Pullman");
       } else if (row == 1 && col == 2) {
         // Pagina 6 - Musica
-        drawMusicIcon(x + 80, y + 28, TFT_GREEN);
+        drawMusicIcon(x + 80, y + 25, TFT_GREEN);
         tft.setTextColor(TFT_GREEN);
         tft.setCursor(textX + 12, textY + 15);
         tft.println("Musica");

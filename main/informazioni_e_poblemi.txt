@@ -1,0 +1,57 @@
+        x e y nello schermo
+//(480,320)  ---------------------------------- (0,320)
+//|                                               |
+//|                                               |
+//|                                               |
+//|                                               |
+//|                                               |
+//(480,0) ------------------------------------- (0,0)
+
+come compilare il codice: 
+1)dall ide arduino da sketch premere export compiled binary
+2)andare nella cartella dove ce stata lesportazione del binario e zippare il file v0.7.ino.bin
+3)da terminale nella cartella: git add.
+4)git commit -m "descrizione modifiche"
+5)git push origin main
+
+attenzione consigli tra parentesi generati con ai 
+
+=========================================
+          PROBLEMI IMPORTANTI
+=========================================
+-sensore temperatura e umidità non funziona
+       Problema: Manca la chiamata a sensors.requestTemperatures(); nel loop() o in una funzione dedicata, prima di leggere la temperatura.
+       Soluzione: Aggiungere sensors.requestTemperatures(); prima di leggere la temperatura con sensors.getTempCByIndex(0);
+
+- [RISOLTO] Calibrazione touch all'accensione
+       Implementato: load_touch_calibration() in touch_calibration.h legge CALIBRATION_FILE e chiama tft.setTouch(); invocata da setup() dopo l'init del pin TOUCH_CS.
+
+=========================================
+       PROBLEMI MEDIAMENTE IMPORTANTI
+=========================================
+- refactoryng file github
+- page4() (Lampadina RGB Bluetooth) non è mai raggiungibile
+  Problema: Nello switch della griglia home, il case 4 chiama pageBus() (pullman), ma esiste una funzione page4() per la lampadina RGB che non viene mai chiamata da nessuna parte.
+  Soluzione: Decidere se assegnare pageBus() a un indice diverso oppure rimuovere page4().
+
+- roomHum è sempre "--%"" nella pagina meteo
+  Problema: Il sensore DS18B20 (KY-001) misura solo la temperatura, non l'umidità. La variabile roomHum resta sempre a 0.0 e sullo schermo viene mostrato "--%".
+  Soluzione: Rimuovere la visualizzazione dell'umidità della stanza, oppure aggiungere un sensore DHT11/DHT22/BME280 che la supporta.
+
+=========================================
+       FUNZIONALITÀ A LUNGO TERMINE
+=========================================
+- Aggiungere nuove pagine : 
+  -nella home vicino a impostazioni notifiche del telefono
+  - pagina lampadina
+  - pagina musica
+  - pagina qualità dell'aria
+  - pagina timer
+  - pagina Cornice Fotografia / Salvaschermo
+
+
+============================================================
+       COSE DA CONTROLLARE PERCHè CORRETTE/AGGIUNTE
+============================================================
+- pagina orari pullman in tempo reale (https://gpa.madbob.org/query.php?stop=numero_fermata)
+- calibrazione touch da impostazioni

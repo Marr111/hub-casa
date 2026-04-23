@@ -426,6 +426,7 @@ void pageImpostazioni() {
   drawHouse();
 
   waitRelease();  // Debounce iniziale
+  delay(200);     // Sicurezza extra per evitare rimbalzi
 
   for (int y = 70; y < 320; y = y + 50) {
     tft.fillRoundRect(15, y, 420, 40, 15, TFT_LIGHTGREY);
@@ -443,16 +444,8 @@ void pageImpostazioni() {
     else if (stato_scroll_bar == 3)
       stato_scroll_bar3();
 
-    uint16_t tx, ty;
-    if (tft.getTouch(&tx, &ty)) {
-      lastActivity = millis();
-      // Se premi la casetta (alto-sinistra: touch X piccolo, touch Y grande per Y invertito)
-      if (tx < 60 && ty < 60) {  // Area casetta
-        Serial.println("Uscita da Impostazioni");
-        page = 0;
-        esci_dal_loop = 0;
-      }
-    }
+    // Rimosso il controllo touch duplicato qui fuori: 
+    // le funzioni stato_scroll_barX() gestiscono già i loro touch e il ritorno alla home.
     delay(10);
   }
   waitRelease();
@@ -602,16 +595,16 @@ void stato_scroll_bar1() {
     if (page == 0) return;
 
     if (tp.touched) {
-      // WiFi
-      if (tp.x > 410 && tp.x < 430 && tp.y > 220 && tp.y < 250) {
+      // 1. WiFi (Disegnato a Y=70-110, centro 90)
+      if (tp.x > 400 && tp.x < 440 && tp.y > 70 && tp.y < 110) {
         drawCaricamento(415, 90, 2);
         connessioneWiFi();
         drawCaricamento(415, 90, 2);
         tft.fillRect(400, 75, 31, 31, TFT_LIGHTGREY);
         drawCircleWithDot(415, 90, 15);
       }
-      // NTP
-      else if (tp.x > 410 && tp.x < 430 && tp.y > 150 && tp.y < 180) {
+      // 2. NTP (Disegnato a Y=120-160, centro 140)
+      else if (tp.x > 400 && tp.x < 440 && tp.y > 120 && tp.y < 160) {
         Serial.println("ricalibrazione ntp");
         drawCaricamento(415, 140, 2);
         connessioneNTP();
@@ -619,35 +612,38 @@ void stato_scroll_bar1() {
         tft.fillRect(400, 125, 31, 31, TFT_LIGHTGREY);
         drawCircleWithDot(415, 140, 15);
       }
-      // Touch
-      else if (tp.x > 410 && tp.x < 430 && tp.y > 100 && tp.y < 130) {
+      // 3. Touch (Disegnato a Y=170-210, centro 190)
+      else if (tp.x > 400 && tp.x < 440 && tp.y > 170 && tp.y < 210) {
         Serial.println("calibrazione touch");
         drawCaricamento(415, 190, 2);
-        touch_calibrate();
-        // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
+        // NOTA: usa force_touch_calibrate() (non touch_calibrate()) perché
+        // touch_calibrate() esce subito se il file esiste già (comportamento corretto al boot).
+        // force_touch_calibrate() cancella il file e forza sempre la procedura.
+        force_touch_calibrate();
+        waitRelease();  // Ignora tocchi residui dopo la calibrazione
+        return;         // Ritorna a pageImpostazioni() che ridisegna la schermata
       }
-      //aggiornamento codice
-      else if (tp.x > 410 && tp.x < 430 && tp.y > 50 && tp.y < 100){
+      // 4. Aggiornamento codice (Disegnato a Y=220-260, centro 240)
+      else if (tp.x > 400 && tp.x < 440 && tp.y > 220 && tp.y < 260){
         Serial.println("cerca nuovo codice");
         drawCaricamento(415, 240, 2);
-        if (lastVersionCheck == 0 || (millis() - lastVersionCheck > VERSION_CHECK_INTERVAL)) {//nuovo codice
+        if (lastVersionCheck == 0 || (millis() - lastVersionCheck > VERSION_CHECK_INTERVAL)) {
           checkForUpdate();
           if (updateAvailable) {
-            performOTAUpdate(); // Rimuovi questa riga se vuoi aggiornamento manuale
+            performOTAUpdate();
           }
         }
-        // Nessuna chiamata ricorsiva: il while esterno ridisegnerà lo stato corretto
-      } else if (tp.x < HOME_BTN_X_MAX && tp.y < HOME_BTN_Y_MAX) {  // ritorno alla home
-        page = 0;
-        esci_dal_loop = 0;
-        // FIX: disegnaHome() garantisce il ridisegno anche se checkInactivity() modifica page
-        disegnaHome();
+      }
+      // 5. Info dispositivo (Disegnato a Y=270-310, centro 290)
+      else if (tp.x > 400 && tp.x < 440 && tp.y > 270 && tp.y < 310) {
+        pageInfoDispositivo();
         return;
       }
-      // Info dispositivo (pulsante 5, y display ~280-300 → touch y ~20-40)
-      else if (tp.x > 410 && tp.x < 430 && tp.y > 10 && tp.y < 50) {
-        pageInfoDispositivo();
-        // Al ritorno ridisegna lo stato corrente
+      // Ritorno alla home (Casetta in alto a sx)
+      else if (tp.x < HOME_BTN_X_MAX && tp.y < HOME_BTN_Y_MAX) {
+        page = 0;
+        esci_dal_loop = 0;
+        disegnaHome();
         return;
       }
     }
@@ -723,21 +719,21 @@ int touchMenu(int stato_scroll_bar) {
   uint16_t x, y;
   if (tft.getTouch(&x, &y)) {
     lastActivity = millis();
-    // Freccia su
-    if (x > 440 && y < 25) {
-      if (stato_scroll_bar < 3) {
-        Serial.println(stato_scroll_bar);
-        stato_scroll_bar++;
-        Serial.println("⬇️ Scroll DOWN");
+    // Freccia sopra (y < 25): ora SCORRE SU (diminuisce indice pagina)
+    if (x > 440 && y < 60) {
+      if (stato_scroll_bar > 1) {
+        stato_scroll_bar--;
+        Serial.println("⬆️ Scroll UP (Pagina precedente)");
+        waitRelease();
       }
     }
 
-    // Freccia giù
-    if (x > 440 && y > 270) {
-      if (stato_scroll_bar > 1) {
-        stato_scroll_bar--;
-        Serial.println("⬆️ Scroll UP");
-        Serial.println(stato_scroll_bar);
+    // Freccia sotto (y > 270): ora SCORRE SOTTO (aumenta indice pagina)
+    if (x > 440 && y > 260) {
+      if (stato_scroll_bar < 3) {
+        stato_scroll_bar++;
+        Serial.println("⬇️ Scroll DOWN (Pagina successiva)");
+        waitRelease();
       }
     }
   }

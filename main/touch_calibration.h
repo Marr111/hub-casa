@@ -107,6 +107,61 @@ void touch_calibrate() {
   delay(1000);
 }
 
+// Versione forzata: cancella sempre il file esistente e ricalibra.
+// Usata dal pulsante nelle impostazioni, dove l'utente vuole esplicitamente ricalibrate.
+// Al termine ridisegna la schermata impostazioni tramite return (il while di pageImpostazioni la ridisegna).
+void force_touch_calibrate() {
+  Serial.println("[FORCE] Ricalibrazione touch richiesta manualmente.");
+
+  // Cancella il file esistente per forzare la procedura
+  if (SPIFFS.exists(CALIBRATION_FILE)) {
+    SPIFFS.remove(CALIBRATION_FILE);
+    Serial.println("[FORCE] File calibrazione precedente rimosso.");
+  }
+
+  // Schermata istruzioni
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextFont(2);
+  tft.setTextSize(2);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setCursor(30, 40);
+  tft.println("CALIBRAZIONE TOUCH");
+  tft.setTextSize(1);
+  tft.setCursor(20, 80);
+  tft.println("Tocca i 4 angoli quando appare la freccia.");
+
+  delay(1500);
+
+  uint16_t calData[5];
+  tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 20);
+
+  // Salva il nuovo file
+  File f = SPIFFS.open(CALIBRATION_FILE, "w");
+  if (f) {
+    f.write((const unsigned char *)calData, sizeof(calData));
+    f.close();
+    Serial.println("[FORCE] Nuova calibrazione salvata.");
+  } else {
+    Serial.println("[FORCE] ERRORE: impossibile salvare la calibrazione!");
+  }
+
+  // Applica subito la nuova calibrazione
+  tft.setTouch(calData);
+
+  // Schermata di conferma
+  tft.fillScreen(TFT_BLACK);
+  tft.setTextColor(TFT_GREEN, TFT_BLACK);
+  tft.setTextSize(2);
+  tft.setCursor(60, 130);
+  tft.println("Calibrazione OK!");
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.setTextSize(1);
+  tft.setCursor(80, 170);
+  tft.println("Ritorno alle impostazioni...");
+  delay(1500);
+  // Il return torna a stato_scroll_bar1() che ridisegna le impostazioni
+}
+
 // ============================================================================
 // TEST TOUCH (per debugging)
 // ============================================================================

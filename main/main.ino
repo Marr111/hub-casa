@@ -54,9 +54,9 @@ DallasTemperature sensors(&oneWire);
 // ============================================================================
 #include "gui_functions.h"
 #include "bus_schedule.h"
-#include "logic_pages.h"
+#include "touch_calibration.h"   // DEVE stare prima di logic_pages.h (force_touch_calibrate)
 #include "network_time.h"
-#include "touch_calibration.h"
+#include "logic_pages.h"
 
 // ============================================================================
 // SETUP
