@@ -44,8 +44,7 @@ Hub domotico basato su **ESP32-S3** con display touchscreen **ST7796** (480×320
 | Componente | Specifiche | Note |
 |---|---|---|
 | **MCU** | ESP32-S3 Dev Module | Elevate prestazioni e WiFi integrato |
-| **Display** | ST7796 3.5" TFT | Risoluzione 480×320 pixel |
-| **Touch** | Resistivo | Gestito tramite libreria TFT_eSPI |
+| **Display touch** | ST7796 3.5" TFT | Risoluzione 480×320 pixel |
 | **Sensore Temp** | DS18B20 (KY-001) | Collegato al GPIO 4 |
 
 ### Pinout Consigliato (ESP32-S3)

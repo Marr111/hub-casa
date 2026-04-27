@@ -2,6 +2,7 @@
 #define LOGIC_PAGES_H
 
 #include "config.h"
+#include "lampadina.h"
 
 // ============================================================================
 // GESTIONE PAGINE E NAVIGAZIONE
@@ -115,7 +116,7 @@ void pageprincipale() {
         break;
       case 4:
         page = 4;
-        page4();
+        pageLampadina(); // Ora punta al nuovo modulo interattivo
         running = false;
         break;
       case 5:
@@ -285,34 +286,7 @@ void page3() {
 }
 
 
-void page4() {
-  tft.fillScreen(sfondo_page4);
-  tft.setTextColor(TFT_WHITE, sfondo_page4);
-  tft.setTextSize(3);
-  tft.setCursor(130, 30);
-  tft.println("LAMPADINA RGB");
-  // Icona lampadina grande al centro
-  tft.fillCircle(240, 140, 50, TFT_ORANGE);
-  tft.drawCircle(240, 140, 52, TFT_WHITE);
-  tft.fillRect(225, 185, 30, 12, TFT_DARKGREY); // base
-  tft.drawRect(225, 185, 30, 12, TFT_WHITE);
-  drawHouse();
-
-  while (page == 4) {
-    uint16_t x, y;
-    if (tft.getTouch(&x, &y)) {
-      lastActivity = millis();
-      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
-        waitRelease();
-        page = 0;
-        disegnaHome();
-        return;
-      }
-    }
-    checkInactivity();
-    delay(10);
-  }
-}
+// page4() rimossa: sostituita da pageLampadina() in lampadina.h
 
 void page5() {
   tft.fillScreen(sfondo_page5);

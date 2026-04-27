@@ -237,7 +237,7 @@ void pageprincipale();
 void pageCalendario();
 void pageTask();
 void page3();
-void page4();
+void pageLampadina();
 void pageBus();
 void page5();
 void page6();
