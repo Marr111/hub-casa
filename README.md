@@ -128,15 +128,11 @@ Il sistema controlla periodicamente la presenza di nuove versioni su GitHub.
 ## 🐛 Stato e Problemi Noti
 
 - 🌡️ **Umidità:** Il sensore attuale (DS18B20) rileva solo la temperatura. L'umidità interna è attualmente disabilitata o mostra `--%`.
-- 💡 **Pagina 4 (Lampadina):** Funzionalità RGB Bluetooth attualmente non collegata alla griglia principale (accessibile solo via codice).
-- 🔍 **Calibrazione:** Se il touch non risponde correttamente, avvia la calibrazione dal menu impostazioni.
 
 ---
 
 ## 🗺️ Roadmap
 
-- [ ] Integrazione MQTT per domotica avanzata.
-- [ ] Controllo strisce LED RGB via Bluetooth/WiFi.
 - [ ] Supporto per sensori BME280 (Temp/Hum/Pressione).
 - [ ] Pagina dedicata alla riproduzione musicale.
 - [ ] Salvaschermo con cornice digitale (SPIFFS/SD).

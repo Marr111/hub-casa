@@ -338,25 +338,321 @@ void page6() {
   }
 }
 
-void page7() {
+void pageTimerApp() {
   tft.fillScreen(sfondo_page7);
-  tft.setCursor(175, 30);
-  tft.setTextColor(TFT_WHITE, sfondo_page7);
-  tft.setTextSize(4);
-  tft.println("TIMER");
-  // Icona timer grande al centro
-  drawTimerIcon(240, 150, TFT_WHITE);
   drawHouse();
+  
+  static int setMin = 0;
+  static int setSec = 0;
+
+  tft.setCursor(200, 20);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE, sfondo_page7);
+  tft.println("TIMER");
+  
+  drawButton(350, 10, 100, 40, "INDIETRO", TFT_DARKGREY);
+
+  auto drawTimerDisplay = [&]() {
+    tft.fillRect(100, 100, 280, 80, sfondo_page7);
+    char buf[16];
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(6);
+    if (timerActive) {
+      unsigned long rem = timerRemaining / 1000;
+      snprintf(buf, sizeof(buf), "%02lu:%02lu", rem / 60, rem % 60);
+      tft.setTextColor(TFT_GREEN, sfondo_page7);
+    } else {
+      snprintf(buf, sizeof(buf), "%02d:%02d", setMin, setSec);
+      tft.setTextColor(TFT_WHITE, sfondo_page7);
+    }
+    tft.drawString(buf, 240, 140);
+    tft.setTextDatum(TL_DATUM);
+  };
+
+  auto drawControls = [&]() {
+    if (!timerActive) {
+      drawButton(100, 200, 60, 50, "+M", TFT_BLUE);
+      drawButton(170, 200, 60, 50, "-M", TFT_BLUE);
+      drawButton(250, 200, 60, 50, "+S", TFT_BLUE);
+      drawButton(320, 200, 60, 50, "-S", TFT_BLUE);
+      drawButton(180, 260, 120, 50, "AVVIA", TFT_GREEN);
+    } else {
+      tft.fillRect(0, 200, 480, 120, sfondo_page7);
+      drawButton(180, 260, 120, 50, "STOP", TFT_RED);
+    }
+  };
+
+  drawTimerDisplay();
+  drawControls();
+
+  unsigned long lastUpdate = 0;
+  bool wasActive = timerActive;
+
+  while (page == 7) {
+    if (timerActive && millis() - lastUpdate > 500) {
+      lastUpdate = millis();
+      drawTimerDisplay();
+    }
+    if (wasActive && !timerActive) {
+      wasActive = false;
+      drawTimerDisplay();
+      drawControls();
+    }
+
+    uint16_t x, y;
+    if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
+      }
+      if (x > 350 && y < 50) {
+        waitRelease();
+        return;
+      }
+      if (!timerActive) {
+        if (y > 200 && y < 250) {
+          if (x > 100 && x < 160) { setMin = (setMin + 1) % 100; waitRelease(); drawTimerDisplay(); }
+          if (x > 170 && x < 230) { setMin = (setMin + 99) % 100; waitRelease(); drawTimerDisplay(); }
+          if (x > 250 && x < 310) { setSec = (setSec + 1) % 60; waitRelease(); drawTimerDisplay(); }
+          if (x > 320 && x < 380) { setSec = (setSec + 59) % 60; waitRelease(); drawTimerDisplay(); }
+        }
+        if (y > 260 && y < 310 && x > 180 && x < 300) {
+          waitRelease();
+          if (setMin > 0 || setSec > 0) {
+            timerActive = true;
+            wasActive = true;
+            timerRemaining = (setMin * 60 + setSec) * 1000;
+            timerEndTime = millis() + timerRemaining;
+            tft.fillRect(0, 200, 480, 120, sfondo_page7);
+            drawControls();
+            drawTimerDisplay();
+          }
+        }
+      } else {
+        if (y > 260 && y < 310 && x > 180 && x < 300) {
+          waitRelease();
+          timerActive = false;
+          wasActive = false;
+          timerRemaining = 0;
+          drawControls();
+          drawTimerDisplay();
+        }
+      }
+    }
+    checkInactivity();
+    delay(10);
+  }
+}
+
+void pageSvegliaApp() {
+  tft.fillScreen(sfondo_page7);
+  drawHouse();
+  
+  tft.setCursor(180, 20);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE, sfondo_page7);
+  tft.println("SVEGLIA");
+  
+  drawButton(350, 10, 100, 40, "INDIETRO", TFT_DARKGREY);
+
+  auto drawSvegliaDisplay = [&]() {
+    tft.fillRect(100, 100, 280, 80, sfondo_page7);
+    char buf[16];
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(6);
+    snprintf(buf, sizeof(buf), "%02d:%02d", alarmHour, alarmMinute);
+    tft.setTextColor(alarmActive ? TFT_GREEN : TFT_WHITE, sfondo_page7);
+    tft.drawString(buf, 240, 140);
+    tft.setTextDatum(TL_DATUM);
+  };
+
+  auto drawControls = [&]() {
+    tft.fillRect(0, 200, 480, 120, sfondo_page7);
+    drawButton(100, 200, 60, 50, "+H", TFT_ORANGE);
+    drawButton(170, 200, 60, 50, "-H", TFT_ORANGE);
+    drawButton(250, 200, 60, 50, "+M", TFT_ORANGE);
+    drawButton(320, 200, 60, 50, "-M", TFT_ORANGE);
+    if (alarmActive) {
+      drawButton(180, 260, 120, 50, "DISATTIVA", TFT_RED);
+    } else {
+      drawButton(180, 260, 120, 50, "ATTIVA", TFT_GREEN);
+    }
+  };
+
+  drawSvegliaDisplay();
+  drawControls();
 
   while (page == 7) {
     uint16_t x, y;
     if (tft.getTouch(&x, &y)) {
       lastActivity = millis();
-      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {  // Area casetta
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {
         waitRelease();
         page = 0;
         disegnaHome();
         return;
+      }
+      if (x > 350 && y < 50) {
+        waitRelease();
+        return;
+      }
+      if (y > 200 && y < 250) {
+        if (x > 100 && x < 160) { alarmHour = (alarmHour + 1) % 24; waitRelease(); drawSvegliaDisplay(); }
+        if (x > 170 && x < 230) { alarmHour = (alarmHour + 23) % 24; waitRelease(); drawSvegliaDisplay(); }
+        if (x > 250 && x < 310) { alarmMinute = (alarmMinute + 1) % 60; waitRelease(); drawSvegliaDisplay(); }
+        if (x > 320 && x < 380) { alarmMinute = (alarmMinute + 59) % 60; waitRelease(); drawSvegliaDisplay(); }
+      }
+      if (y > 260 && y < 310 && x > 180 && x < 300) {
+        waitRelease();
+        alarmActive = !alarmActive;
+        if (alarmActive) alarmTriggered = false;
+        drawSvegliaDisplay();
+        drawControls();
+      }
+    }
+    checkInactivity();
+    delay(10);
+  }
+}
+
+void pageCronometroApp() {
+  tft.fillScreen(sfondo_page7);
+  drawHouse();
+  
+  tft.setCursor(150, 20);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE, sfondo_page7);
+  tft.println("CRONOMETRO");
+  
+  drawButton(350, 10, 100, 40, "INDIETRO", TFT_DARKGREY);
+
+  auto drawCronometroDisplay = [&]() {
+    unsigned long currentElapsed = stopwatchElapsedTime;
+    if (stopwatchActive) {
+      currentElapsed += (millis() - stopwatchStartTime);
+    }
+    
+    tft.fillRect(60, 100, 360, 80, sfondo_page7);
+    char buf[20];
+    tft.setTextDatum(MC_DATUM);
+    tft.setTextSize(6);
+    unsigned long ms = currentElapsed % 1000;
+    unsigned long sec = (currentElapsed / 1000) % 60;
+    unsigned long min = (currentElapsed / 60000);
+    snprintf(buf, sizeof(buf), "%02lu:%02lu.%01lu", min, sec, ms / 100);
+    tft.setTextColor(TFT_WHITE, sfondo_page7);
+    tft.drawString(buf, 240, 140);
+    tft.setTextDatum(TL_DATUM);
+  };
+
+  auto drawControls = [&]() {
+    tft.fillRect(0, 200, 480, 120, sfondo_page7);
+    if (!stopwatchActive) {
+      drawButton(120, 220, 100, 60, "AVVIA", TFT_GREEN);
+      drawButton(260, 220, 100, 60, "RESET", TFT_DARKGREY);
+    } else {
+      drawButton(120, 220, 100, 60, "STOP", TFT_RED);
+      drawButton(260, 220, 100, 60, "RESET", TFT_DARKGREY);
+    }
+  };
+
+  drawCronometroDisplay();
+  drawControls();
+
+  unsigned long lastUpdate = 0;
+
+  while (page == 7) {
+    if (stopwatchActive && millis() - lastUpdate > 100) {
+      lastUpdate = millis();
+      drawCronometroDisplay();
+    }
+
+    uint16_t x, y;
+    if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
+      }
+      if (x > 350 && y < 50) {
+        waitRelease();
+        return;
+      }
+      if (y > 220 && y < 280) {
+        if (x > 120 && x < 220) {
+          waitRelease();
+          if (stopwatchActive) {
+            stopwatchActive = false;
+            stopwatchElapsedTime += (millis() - stopwatchStartTime);
+          } else {
+            stopwatchActive = true;
+            stopwatchStartTime = millis();
+          }
+          drawControls();
+          drawCronometroDisplay();
+        }
+        else if (x > 260 && x < 360) {
+          waitRelease();
+          stopwatchActive = false;
+          stopwatchElapsedTime = 0;
+          drawControls();
+          drawCronometroDisplay();
+        }
+      }
+    }
+    checkInactivity();
+    delay(10);
+  }
+}
+
+void page7() {
+  auto drawMenu = [&]() {
+    tft.fillScreen(sfondo_page7);
+    tft.setCursor(175, 30);
+    tft.setTextColor(TFT_WHITE, sfondo_page7);
+    tft.setTextSize(4);
+    tft.println("OROLOGIO");
+    drawHouse();
+
+    drawButton(30, 100, 120, 100, "TIMER", TFT_BLUE);
+    drawButton(180, 100, 120, 100, "SVEGLIA", TFT_ORANGE);
+    drawButton(330, 100, 120, 100, "CRONO", TFT_DARKGREY);
+  };
+  
+  drawMenu();
+
+  while (page == 7) {
+    uint16_t x, y;
+    if (tft.getTouch(&x, &y)) {
+      lastActivity = millis();
+      if (x < HOME_BTN_X_MAX && y < HOME_BTN_Y_MAX) {
+        waitRelease();
+        page = 0;
+        disegnaHome();
+        return;
+      }
+      
+      if (y > 100 && y < 200) {
+        if (x > 30 && x < 150) {
+          waitRelease();
+          pageTimerApp();
+          if (page == 7) drawMenu();
+        }
+        else if (x > 180 && x < 300) {
+          waitRelease();
+          pageSvegliaApp();
+          if (page == 7) drawMenu();
+        }
+        else if (x > 330 && x < 450) {
+          waitRelease();
+          pageCronometroApp();
+          if (page == 7) drawMenu();
+        }
       }
     }
     checkInactivity();

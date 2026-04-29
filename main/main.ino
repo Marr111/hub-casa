@@ -47,7 +47,19 @@ bool sensorReady = false;   // true dopo la prima lettura valida (evita bug: 0°
 OneWire oneWire(ONE_WIRE_BUS);
 DallasTemperature sensors(&oneWire);
 
+// Timer, Sveglia e Cronometro
+bool timerActive = false;
+unsigned long timerEndTime = 0;
+unsigned long timerRemaining = 0;
 
+bool alarmActive = false;
+int alarmHour = 0;
+int alarmMinute = 0;
+bool alarmTriggered = false;
+
+bool stopwatchActive = false;
+unsigned long stopwatchStartTime = 0;
+unsigned long stopwatchElapsedTime = 0;
 
 // ============================================================================
 // INCLUDE DEI MODULI (DOPO le definizioni delle variabili!)
@@ -66,6 +78,10 @@ void setup() {
   delay(500);
   sensors.begin();  // Inizializza sensore KY-001 (DS18B20)
   Serial.println("✨ Inizializzazione ESP32-S3... ✨");
+
+  // Inizializza Buzzer
+  pinMode(BUZZER_PIN, OUTPUT);
+  digitalWrite(BUZZER_PIN, LOW);
 
   // Inizializza SPIFFS
   if (!SPIFFS.begin(true)) {
@@ -120,6 +136,42 @@ void setup() {
 // LOOP PRINCIPALE
 // ============================================================================
 void loop() {
+  // --- Gestione Timer e Sveglia (Buzzer) ---
+  static unsigned long buzzerOffTime = 0;
+
+  // Controllo Timer
+  if (timerActive) {
+    if (millis() >= timerEndTime) {
+      timerActive = false;
+      timerRemaining = 0;
+      digitalWrite(BUZZER_PIN, HIGH);
+      buzzerOffTime = millis() + 3000; // Suona per 3 secondi
+    } else {
+      timerRemaining = timerEndTime - millis();
+    }
+  }
+
+  // Controllo Sveglia
+  if (alarmActive && !alarmTriggered) {
+    if (timeinfo.tm_hour == alarmHour && timeinfo.tm_min == alarmMinute && timeinfo.tm_sec == 0) {
+      alarmTriggered = true;
+      digitalWrite(BUZZER_PIN, HIGH);
+      buzzerOffTime = millis() + 5000; // Suona per 5 secondi
+    }
+  }
+  
+  // Reset Sveglia quando passa il minuto
+  if (alarmTriggered && timeinfo.tm_min != alarmMinute) {
+    alarmTriggered = false;
+  }
+
+  // Spegnimento Buzzer
+  if (buzzerOffTime > 0 && millis() >= buzzerOffTime) {
+    digitalWrite(BUZZER_PIN, LOW);
+    buzzerOffTime = 0;
+  }
+  // -----------------------------------------
+
   // Aggiornamento periodico del calendario (ogni 30 minuti = 1800000 ms)
   static unsigned long lastCalendarUpdate = millis();
   if (millis() - lastCalendarUpdate > 1800000) {

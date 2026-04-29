@@ -27,9 +27,10 @@
 #define TFT_HEIGHT 480
 
 // ============================================================================
-// SENSORE KY-001 (DS18B20)
+// SENSORE KY-001 (DS18B20) E BUZZER
 // ============================================================================
 #define ONE_WIRE_BUS 4   // GPIO a cui è collegato il data del KY-001
+#define BUZZER_PIN   22  // Cambiato da 5 a 22 per evitare conflitti con SD_CS o SPI che bloccano il touch
 
 // ============================================================================
 // CONFIGURAZIONE TOUCH
@@ -178,6 +179,22 @@ extern int led_g;
 extern int led_b;
 extern bool led_acceso;
 extern int luminosita;
+
+// ============================================================================
+// TIMER, SVEGLIA E CRONOMETRO
+// ============================================================================
+extern bool timerActive;
+extern unsigned long timerEndTime;
+extern unsigned long timerRemaining;
+
+extern bool alarmActive;
+extern int alarmHour;
+extern int alarmMinute;
+extern bool alarmTriggered;
+
+extern bool stopwatchActive;
+extern unsigned long stopwatchStartTime;
+extern unsigned long stopwatchElapsedTime;
 
 // ============================================================================
 // FORWARD DECLARATIONS (Prototipi delle funzioni)

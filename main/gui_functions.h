@@ -488,5 +488,15 @@ void disegnaGrigliaHome() {
   }
 }
 
+// Funzione generica per disegnare pulsanti
+void drawButton(int x, int y, int w, int h, const char* label, uint16_t bgColor, uint16_t textColor = TFT_WHITE, int textSize = 2) {
+  tft.fillRoundRect(x, y, w, h, 8, bgColor);
+  tft.drawRoundRect(x, y, w, h, 8, TFT_WHITE);
+  tft.setTextColor(textColor);
+  tft.setTextSize(textSize);
+  tft.setTextDatum(MC_DATUM);
+  tft.drawString(label, x + w / 2, y + h / 2);
+  tft.setTextDatum(TL_DATUM); // Ripristina
+}
 
 #endif // GUI_FUNCTIONS_H
