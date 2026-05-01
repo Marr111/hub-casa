@@ -100,6 +100,7 @@ void setup() {
   // Inizializza touch
   pinMode(TOUCH_CS, OUTPUT);
   digitalWrite(TOUCH_CS, HIGH);
+  //load_touch_calibration();
   load_touch_calibration();
 
   // --- FASE 1: Avvio File System ---
@@ -136,41 +137,37 @@ void setup() {
 // LOOP PRINCIPALE
 // ============================================================================
 void loop() {
-  // --- Gestione Timer e Sveglia (Buzzer) ---
-  static unsigned long buzzerOffTime = 0;
+  // --- Gestione Timer e Sveglia ---
+  // NOTA: page==7 (orologio) gestisce timer/sveglia da solo nel suo loop.
+  // Qui gestiamo solo il caso in cui scattano mentre siamo su un'altra pagina (es. home).
 
   // Controllo Timer
-  if (timerActive) {
+  if (timerActive && page != 7) {
     if (millis() >= timerEndTime) {
       timerActive = false;
       timerRemaining = 0;
-      digitalWrite(BUZZER_PIN, HIGH);
-      buzzerOffTime = millis() + 3000; // Suona per 3 secondi
+      alarmAlert();          // Flash rosso/bianco + buzzer, toccabile
+      if (page == 0) disegnaHome();  // Ridisegna la home dopo l'alert
     } else {
-      timerRemaining = timerEndTime - millis();
+      timerRemaining = timerEndTime - millis(); // Aggiorna per usi futuri
     }
   }
 
   // Controllo Sveglia
-  if (alarmActive && !alarmTriggered) {
+  if (alarmActive && !alarmTriggered && page != 7) {
     if (timeinfo.tm_hour == alarmHour && timeinfo.tm_min == alarmMinute && timeinfo.tm_sec == 0) {
       alarmTriggered = true;
-      digitalWrite(BUZZER_PIN, HIGH);
-      buzzerOffTime = millis() + 5000; // Suona per 5 secondi
+      alarmAlert();          // Flash rosso/bianco + buzzer, toccabile
+      if (page == 0) disegnaHome();
     }
   }
-  
+
   // Reset Sveglia quando passa il minuto
   if (alarmTriggered && timeinfo.tm_min != alarmMinute) {
     alarmTriggered = false;
   }
-
-  // Spegnimento Buzzer
-  if (buzzerOffTime > 0 && millis() >= buzzerOffTime) {
-    digitalWrite(BUZZER_PIN, LOW);
-    buzzerOffTime = 0;
-  }
   // -----------------------------------------
+
 
   // Aggiornamento periodico del calendario (ogni 30 minuti = 1800000 ms)
   static unsigned long lastCalendarUpdate = millis();
@@ -224,7 +221,8 @@ void loop() {
   }
 
   uint16_t x, y;//touch
-  if (tft.getTouch(&x, &y)) {
+  if (getTouchMapped(&x, &y)) {
+    Serial.printf("Touch detect -> X: %d, Y: %d\n", x, y);
     if (x > GEAR_BTN_X_MIN && y < GEAR_BTN_Y_MAX) {  // Area Ingranaggio (angolo alto-dx)
       delay(DEBOUNCE_MS);
       page = 9;  // IMPORTANTE: deve essere != 0 prima di entrare

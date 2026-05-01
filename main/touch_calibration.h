@@ -4,226 +4,143 @@
 #include "config.h"
 
 // ============================================================================
-// GESTIONE TOUCH E CALIBRAZIONE
+// MAPPATURA TOUCH HARDWARE (calcolata dai dati RAW misurati)
+// ============================================================================
+// Dati RAW misurati fisicamente:
+//   Alto-sinistra  -> RAW X: 3680, RAW Y: 328
+//   Alto-destra    -> RAW X: 3536, RAW Y: 3839
+//   Basso-sinistra -> RAW X: 520,  RAW Y: 402
+//   Basso-destra   -> RAW X: 383,  RAW Y: 3904
+//
+// Conclusione: il sensore ha gli assi SCAMBIATI rispetto al display:
+//   - RAW Y mappa la coordinata X dello schermo (0-480)
+//   - RAW X mappa la coordinata Y dello schermo (0-320), ed è INVERTITO
+//
+// Valori limite usati per il mapping:
+#define TOUCH_RAW_X_MAX 3680   // RAW X quando Y schermo = 0 (in alto)
+#define TOUCH_RAW_X_MIN  383   // RAW X quando Y schermo = 320 (in basso)
+#define TOUCH_RAW_Y_MIN  328   // RAW Y quando X schermo = 0 (a sinistra)
+#define TOUCH_RAW_Y_MAX 3904   // RAW Y quando X schermo = 480 (a destra)
+
+// Dimensioni schermo in landscape
+#define SCREEN_W 480
+#define SCREEN_H 320
+
+// Soglia minima di pressione per considerare valido il tocco
+// Valore alto (600) per eliminare ghost touch che causano flickering della home
+#define TOUCH_PRESSURE_MIN 600
+
+// ============================================================================
+// FUNZIONE TOUCH PRINCIPALE (sostituisce tft.getTouch)
+// Restituisce true e le coordinate schermo corrette se il tocco è valido.
+// ============================================================================
+bool getTouchMapped(uint16_t *sx, uint16_t *sy) {
+  uint16_t rawX, rawY;
+  uint16_t z = tft.getTouchRawZ(); // pressione
+
+  if (z < TOUCH_PRESSURE_MIN) return false;
+  if (!tft.getTouchRaw(&rawX, &rawY)) return false;
+
+  // Clamp ai valori minimi/massimi per evitare overflow
+  rawX = constrain(rawX, TOUCH_RAW_X_MIN, TOUCH_RAW_X_MAX);
+  rawY = constrain(rawY, TOUCH_RAW_Y_MIN, TOUCH_RAW_Y_MAX);
+
+  // RAW Y → coordinata X schermo (0-480, crescente verso destra)
+  // NOTA: invertito (Y_MAX→0, Y_MIN→SCREEN_W) perché il sensore ha l'asse X specchiato
+  *sx = map(rawY, TOUCH_RAW_Y_MAX, TOUCH_RAW_Y_MIN, 0, SCREEN_W);
+
+  // RAW X → coordinata Y schermo (0-320, crescente verso il basso)
+  // Nota: RAW X è INVERTITO (grande in alto, piccolo in basso)
+  *sy = map(rawX, TOUCH_RAW_X_MAX, TOUCH_RAW_X_MIN, 0, SCREEN_H);
+
+  return true;
+}
+
+// ============================================================================
+// COMPATIBILITÀ: funzioni esistenti che chiamano tft.getTouch
+// Le reindirizza a getTouchMapped senza toccare il resto del codice.
 // ============================================================================
 
 void load_touch_calibration() {
-  uint16_t calData[5];
-  
-  if (!SPIFFS.exists(CALIBRATION_FILE)) {
-    Serial.println("Calibrazione mancante. Avvio calibrazione forzata.");
-    touch_calibrate();
-    return;
-  }
-  
-  File f = SPIFFS.open(CALIBRATION_FILE, "r");
-  if (!f) {
-    Serial.println("Errore lettura calibrazione. Avvio calibrazione forzata.");
-    touch_calibrate();
-    return;
-  }
-  
-  if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData)) {
-    tft.setTouch(calData);
-    Serial.println("Calibrazione touch caricata con successo.");
-  } else {
-    Serial.println("Dati calibrazione corrotti. Avvio calibrazione forzata.");
-    touch_calibrate();
-  }
-  f.close();
+  // Nessuna calibrazione necessaria: usiamo getTouchMapped() direttamente.
+  Serial.println("Touch: mappatura hardware custom attiva.");
 }
 
 TouchPoint touch_coordinate() {
   TouchPoint p = { 0, 0, false };
-
-  if (tft.getTouch(&p.x, &p.y)) {
+  if (getTouchMapped(&p.x, &p.y)) {
     lastActivity = millis();
     p.touched = true;
   }
-
   return p;
 }
 
 void touch_calibrate() {
-  uint16_t calData[5];
-  uint8_t calDataOK = 0;
-
-  // Controlla se esiste calibrazione
-  if (SPIFFS.exists(CALIBRATION_FILE)) {
-    if (REPEAT_CAL) {
-      SPIFFS.remove(CALIBRATION_FILE);
-    } else {
-      File f = SPIFFS.open(CALIBRATION_FILE, "r");
-      if (f) {
-        if (f.readBytes((char *)calData, sizeof(calData)) == sizeof(calData))
-          calDataOK = 1;
-        f.close();
-        // FIX: se i dati sono validi e REPEAT_CAL è false, non ricalibriamo
-        if (calDataOK) {
-          tft.setTouch(calData);
-          Serial.println("Calibrazione touch caricata da touch_calibrate() (skip ricalibrazione).");
-          return;
-        }
-      }
-    }
-  }
-
-  // Esegui calibrazione
-  Serial.println("Iniziando calibrazione touch...");
-  tft.fillScreen(TFT_BLACK);
-  tft.setCursor(50, 50);
-  tft.setTextFont(2);
-  tft.setTextSize(2);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-
-  tft.println("Touch agli angoli come indicato");
-
-  tft.setTextFont(1);
-  tft.println();
-
-  if (REPEAT_CAL) {
-    tft.setTextColor(TFT_RED, TFT_BLACK);
-    tft.println("Imposta REPEAT_CAL a false");
-    tft.println("per salvare la calibrazione");
-  }
-
-  // Calibra
-  tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 20);
-
-  // Salva calibrazione
-  File f = SPIFFS.open(CALIBRATION_FILE, "w");
-  if (f) {
-    f.write((const unsigned char *)calData, sizeof(calData));
-    f.close();
-    Serial.println("Calibrazione salvata");
-  }
-
-  // Conferma
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextSize(2);
-  tft.setCursor(20, 140);
-  tft.println("Calibrazione completata!");
-  delay(1000);
+  load_touch_calibration();
 }
 
-// Versione forzata: cancella sempre il file esistente e ricalibra.
-// Usata dal pulsante nelle impostazioni, dove l'utente vuole esplicitamente ricalibrate.
-// Al termine ridisegna la schermata impostazioni tramite return (il while di pageImpostazioni la ridisegna).
 void force_touch_calibrate() {
-  Serial.println("[FORCE] Ricalibrazione touch richiesta manualmente.");
+  Serial.println("[FORCE] Calibrazione hardware custom: nessuna azione necessaria.");
+  load_touch_calibration();
 
-  // Cancella il file esistente per forzare la procedura
-  if (SPIFFS.exists(CALIBRATION_FILE)) {
-    SPIFFS.remove(CALIBRATION_FILE);
-    Serial.println("[FORCE] File calibrazione precedente rimosso.");
-  }
-
-  // Schermata istruzioni
-  tft.fillScreen(TFT_BLACK);
-  tft.setTextFont(2);
-  tft.setTextSize(2);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.setCursor(30, 40);
-  tft.println("CALIBRAZIONE TOUCH");
-  tft.setTextSize(1);
-  tft.setCursor(20, 80);
-  tft.println("Tocca i 4 angoli quando appare la freccia.");
-
-  delay(1500);
-
-  uint16_t calData[5];
-  tft.calibrateTouch(calData, TFT_MAGENTA, TFT_BLACK, 20);
-
-  // Salva il nuovo file
-  File f = SPIFFS.open(CALIBRATION_FILE, "w");
-  if (f) {
-    f.write((const unsigned char *)calData, sizeof(calData));
-    f.close();
-    Serial.println("[FORCE] Nuova calibrazione salvata.");
-  } else {
-    Serial.println("[FORCE] ERRORE: impossibile salvare la calibrazione!");
-  }
-
-  // Applica subito la nuova calibrazione
-  tft.setTouch(calData);
-
-  // Schermata di conferma
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
   tft.setTextSize(2);
-  tft.setCursor(60, 130);
-  tft.println("Calibrazione OK!");
+  tft.setCursor(30, 130);
+  tft.println("Calibrazione hardware OK!");
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.setTextSize(1);
   tft.setCursor(80, 170);
   tft.println("Ritorno alle impostazioni...");
   delay(1500);
-  // Il return torna a stato_scroll_bar1() che ridisegna le impostazioni
 }
 
-// ============================================================================
-// TEST TOUCH (per debugging)
-// ============================================================================
+
 
 void test_touch() {
   tft.fillScreen(TFT_BLACK);
   tft.setTextColor(TFT_GREEN, TFT_BLACK);
-  tft.setTextSize(3);
-  tft.setCursor(50, 20);
-  tft.println("TEST TOUCH");
   tft.setTextSize(2);
-  tft.setCursor(20, 60);
-  tft.println("Tocca lo schermo");
-  tft.setCursor(20, 90);
-  tft.println("Premi HOME per uscire");
+  tft.setCursor(20, 20);
+  tft.println("TEST TOUCH MAPPATO");
+  tft.setTextSize(1);
+  tft.setCursor(20, 50);
+  tft.println("Tocca lo schermo - vedi le coord schermo su seriale");
+  tft.setCursor(20, 65);
+  tft.println("Tocca angolo ALTO-SX per uscire (x<60, y<60)");
 
   drawHouse();
 
+  uint16_t sx, sy;
   unsigned long lastPrint = 0;
-  uint16_t lastX = 0, lastY = 0;
-  unsigned long testStart = millis(); // timeout 60 secondi (fix 4.2)
 
-  while (millis() - testStart < 60000) {
-    uint16_t x, y;
+  while (true) {
+    if (getTouchMapped(&sx, &sy)) {
+      if (millis() - lastPrint > 120) {
+        Serial.printf("MAPPED -> X: %d, Y: %d\n", sx, sy);
 
-    if (tft.getTouch(&x, &y)) {
-      testStart = millis(); // reset timeout a ogni tocco
-      if (millis() - lastPrint > 100 || abs(x - lastX) > 5 || abs(y - lastY) > 5) {
-        Serial.print("Touch X: ");
-        Serial.print(x);
-        Serial.print(" | Y: ");
-        Serial.println(y);
-
-        tft.fillRect(0, 140, 480, 60, TFT_BLACK);
+        tft.fillRect(20, 120, 440, 120, TFT_BLACK);
         tft.setTextSize(3);
-        tft.setTextColor(TFT_YELLOW, TFT_BLACK);
-        tft.setCursor(20, 150);
-        tft.print("X: ");
-        tft.print(x);
-        tft.setCursor(20, 180);
-        tft.print("Y: ");
-        tft.print(y);
+        tft.setTextColor(TFT_YELLOW);
+        tft.setCursor(20, 130);
+        tft.printf("X: %d", sx);
+        tft.setCursor(20, 170);
+        tft.printf("Y: %d", sy);
 
-        tft.fillCircle(x, y, 3, TFT_RED);
+        // Disegna punto dove viene premuto
+        tft.fillCircle(sx, sy, 5, TFT_RED);
 
         lastPrint = millis();
-        lastX = x;
-        lastY = y;
-      }
 
-      // Check HOME
-      if (x < 60 && y < 60) {
-        Serial.println("Uscita dal test touch");
-        delay(500);
-        return;
+        // Uscita: angolo alto-sinistra
+        if (sx < 60 && sy < 60) {
+          Serial.println("Uscita test touch.");
+          return;
+        }
       }
     }
-
     delay(10);
   }
-  // Timeout raggiunto: torna alla home
-  Serial.println("Test touch: timeout raggiunto, uscita automatica");
 }
 
 #endif

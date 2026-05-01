@@ -506,7 +506,7 @@ void pageBus() {
   while (page == 5) {
     uint16_t x, y;
     checkInactivity();
-    if (!tft.getTouch(&x, &y)) { delay(10); continue; }
+    if (!getTouchMapped(&x, &y)) { delay(10); continue; }
     lastActivity = millis();
 
     // Casetta → home

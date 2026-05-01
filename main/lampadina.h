@@ -57,7 +57,7 @@ void pageLampadina() {
 
   while (page == 4) {
     uint16_t x, y;
-    if (tft.getTouch(&x, &y)) {
+    if (getTouchMapped(&x, &y)) {
       lastActivity = millis();
       
       // Tasto HOME

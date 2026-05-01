@@ -30,13 +30,13 @@
 // SENSORE KY-001 (DS18B20) E BUZZER
 // ============================================================================
 #define ONE_WIRE_BUS 4   // GPIO a cui è collegato il data del KY-001
-#define BUZZER_PIN   22  // Cambiato da 5 a 22 per evitare conflitti con SD_CS o SPI che bloccano il touch
+#define BUZZER_PIN   3  
 
 // ============================================================================
 // CONFIGURAZIONE TOUCH
 // ============================================================================
 #define CALIBRATION_FILE "/TouchCalData2"
-#define REPEAT_CAL false
+#define REPEAT_CAL true
 
 // ============================================================================
 // COLORI
@@ -245,6 +245,8 @@ TouchPoint touch_coordinate();
 void load_touch_calibration();
 void touch_calibrate();
 void test_touch();
+bool getTouchMapped(uint16_t *x, uint16_t *y);  // Mappatura hardware custom (sostituisce tft.getTouch)
+void alarmAlert();  // Flash screen + buzzer per timer/sveglia
 
 // Logic Pages Functions
 // NOTA: extern int page / lastPage già dichiarate sopra (riga ~154-156) — non duplicare
